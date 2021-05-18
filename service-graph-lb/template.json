@@ -1,0 +1,96 @@
+{
+    "vnsLDevVip": {
+        "attributes": {
+            "annotation": "${annotation}",
+            "contextAware": "single-Context",
+            "devtype": "VIRTUAL",
+            "funcType": "GoTo",
+            "isCopy": "no",
+            "managed": "no",
+            "mode": "legacy-Mode",
+            "name": "${device_name}",
+            "promMode": "no",
+            "svcType": "ADC",
+            "trunking": "no"
+        },
+        "children": [{
+            "vnsRsALDevToDomP": {
+                "attributes": {
+                    "annotation": "${annotation}",
+                    "switchingMode": "native",
+                    "tDn": "${vmm_domain_dn}"
+                }
+            }
+        }, {
+            "vnsLIf": {
+                "attributes": {
+                    "annotation": "${annotation}",
+                    "encap": "unknown",
+                    "name": "Internal"
+                },
+                "children": [{
+                    "vnsRsCIfAttN": {
+                        "attributes": {
+                            "annotation": "${annotation}",
+                            "tDn": "${tenant_dn}/lDevVip-${device_name}/cDev-Device1/cIf-[Internal]"
+                        }
+                    }
+                }]
+            }
+        }, {
+            "vnsLIf": {
+                "attributes": {
+                    "annotation": "${annotation}",
+                    "encap": "unknown",
+                    "name": "External"
+                },
+                "children": [{
+                    "vnsRsCIfAttN": {
+                        "attributes": {
+                            "annotation": "${annotation}",
+                            "tDn": "${tenant_dn}/lDevVip-${device_name}/cDev-Device1/cIf-[External]"
+                        }
+                    }
+                }]
+            }
+        }, {
+            "vnsCDev": {
+                "attributes": {
+                    "annotation": "${annotation}",
+                    "cloneCount": "0",
+                    "devCtxLbl": "",
+                    "host": "",
+                    "isCloneOperation": "no",
+                    "isTemplate": "no",
+                    "name": "Device1",
+                    "vcenterName": "${vmm_controller_name}",
+                    "vmName": "${vm_name}"
+                },
+                "children": [{
+                    "vnsRsCDevToCtrlrP": {
+                        "attributes": {
+                            "annotation": "${annotation}",
+                            "tDn": "${vmm_controller_dn}"
+                        }
+                    }
+                }, {
+                    "vnsCIf": {
+                        "attributes": {
+                            "annotation": "${annotation}",
+                            "name": "Internal",
+                            "vnicName": "${internal_vnic}"
+                        }
+                    }
+                }, {
+                    "vnsCIf": {
+                        "attributes": {
+                            "annotation": "${annotation}",
+                            "name": "External",
+                            "vnicName": "${external_vnic}"
+                        }
+                    }
+                }]
+            }
+        }]
+    }
+}
