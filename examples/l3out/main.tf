@@ -30,63 +30,91 @@ module "l3out" {
   vrf_dn                         = "uni/tn-vEPC/ctx-VRF"
   l3_domain_dn                   = "uni/l3dom-ansible_l3_dom"
   route_profile_for_interleak_dn = "uni/tn-vEPC/prof-route-map-nso-prefix-routing"
-  route_control_for_dampening = {
-    address_family = "ipv4"
-    route_map_dn   = "uni/tn-vEPC/prof-route-map-nso-prefix-routing"
-  }
-  l3out_external_epg = [{ # remove l3out title
+  route_control_for_dampening = [
+    {
+      address_family = "ipv4"
+      route_map_dn   = "uni/tn-vEPC/prof-route-map-nso-prefix-routing"
+    },
+    {
+      address_family = "ipv6"
+      route_map_dn   = "uni/tn-vEPC/prof-route-map-nso-prefix-routing"
+    }
+  ]
+  l3out_external_epg = [{
     name                   = "ext_epg1"
     description            = "l3out_ext_epg1"
     flood_on_encap         = "enabled"
     label_match_criteria   = "All"
     preferred_group_member = true
-    qos_class              = "level1"
+    qos_class              = "leve1"
     target_dscp            = "VA"
-    subnets =[
-        {
-            ip = "10.0.1.0/24"
-            scope = ["import-rtctrl", "export-rtctrl"]
-            aggregate = "shared-rtctrl"
-
-        },
-        {
-            ip = "11.0.1.0/24"
-            scope = ["import-rtctrl", "export-rtctrl"]
-            aggregate = "none"
-
-        },
+    route_control_profiles = [
+      {
+        direction    = "export"
+        route_map_dn = "uni/tn-vEPC/prof-route-map-nso-prefix-routing"
+      },
+      {
+        direction    = "import"
+        route_map_dn = "uni/tn-vEPC/prof-route-map-nso-prefix-routing"
+      }
     ]
-  },
-  {
-    name                   = "ext_epg2"
-    description            = "l3out_ext_epg2"
-    flood_on_encap         = "enabled"
-    label_match_criteria   = "All"
-    preferred_group_member = false
-    qos_class              = "level2"
-    target_dscp            = "CS5"
-  },
-  {
-    name                   = "ext_epg3"
-    description            = "l3out_ext_epg3"
-    flood_on_encap         = "disabled"
-    label_match_criteria   = "All"
-    preferred_group_member = true
-    qos_class              = "level3"
-    target_dscp            = "CS4"
-    subnets =[
-        {
-            ip = "21.1.1.0/24"
-            scope = ["import-rtctrl", "export-rtctrl"]
-            aggregate = "shared-rtctrl"
+    subnets = [
+      {
+        ip        = "10.0.0.0/24"
+        scope     = ["import-rtctrl", "export-rtctrl"]
+        aggregate = "shared-rtctrl"
 
-        },
-        {
-            ip = "33.1.1.0/24"
-            scope = ["import-rtctrl", "export-rtctrl"]
-            aggregate = "none"
+      },
+      {
+        ip        = "11.0.0.0/24"
+        scope     = ["import-rtctrl", "export-rtctrl"]
+        aggregate = "none"
 
-        },
+      },
     ]
-  }]
+    },
+    {
+      name                   = "ext_epg2"
+      description            = "l3out_ext_epg2"
+      flood_on_encap         = "enabled"
+      label_match_criteria   = "All"
+      preferred_group_member = false
+      qos_class              = "level2"
+      target_dscp            = "CS5"
+      route_control_profiles = [
+        {
+          direction    = "export"
+          route_map_dn = "uni/tn-vEPC/prof-route-map-nso-prefix-routing"
+        }
+      ]
+    },
+    {
+      name                   = "ext_epg3"
+      description            = "l3out_ext_epg3"
+      flood_on_encap         = "disabled"
+      label_match_criteria   = "All"
+      preferred_group_member = true
+      qos_class              = "level3"
+      target_dscp            = "CS4"
+      subnets = [
+        {
+          ip        = "21.1.1.0/24"
+          scope     = ["import-rtctrl", "export-rtctrl"]
+          aggregate = "shared-rtctrl"
+
+
+        },
+        {
+          ip        = "33.1.1.0/24"
+          scope     = ["import-rtctrl", "export-rtctrl"]
+          aggregate = "none"
+
+        },
+      ]
+    }
+  ]
+}
+
+output "test" {
+  value = module.l3out.route_control_profiles
 }
