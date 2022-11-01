@@ -1,5 +1,5 @@
 .DS_Store
-l3out/.DS_Store
+**/.DS_Store
 **/.vscode
 **/.terraform
 **/terraform.tfstate
