@@ -63,13 +63,13 @@ variable "target_dscp" {
   }
 }
 
-############## Variables for  "aci_l3out_bgp_external_policy" ####################    
+############## Variables for  "aci_l3out_bgp_external_policy" ######## 
 variable "external_bgp_name_alias" {
   default = ""
 }
 
-############## Variables for  "aci_l3out_external_epg" ####################
-variable "l3out_external_epg" {
+############## Variables for  "aci_external_epgs" ####################
+variable "external_epgs" {
   type = list(object({
     annotation             = optional(string)
     description            = optional(string)
@@ -90,55 +90,81 @@ variable "l3out_external_epg" {
       aggregate = optional(string)
       alias     = optional(string)
       scope     = list(string)
+      route_control_profiles = optional(list(object({
+        direction    = string
+        route_map_dn = string
+      })))
     })))
   }))
   validation {
-    condition     = alltrue([for criteria in var.l3out_external_epg : contains(["All", "AtleastOne", "AtmostOne", "None"], criteria["label_match_criteria"])])
-    error_message = "Valid values for label_match_criteria in l3out_external_epg are (All, AtleastOne, AtmostOne, None)"
+    condition     = alltrue([for criteria in var.external_epgs : contains(["All", "AtleastOne", "AtmostOne", "None"], criteria["label_match_criteria"])])
+    error_message = "Valid values for label_match_criteria in external_epgs are (All, AtleastOne, AtmostOne, None)"
   }
   validation {
-    condition     = alltrue([for index, class in var.l3out_external_epg : contains(["unspecified", "level6", "level5", "level4", "level3", "level2", "level1"], var.l3out_external_epg[index].qos_class)])
-    error_message = "Valid values for qos_class in l3out_external_epg are (unspecified, level6, level5, level4, level3, level2, level1)"
+    condition     = alltrue([for index, class in var.external_epgs : contains(["unspecified", "level6", "level5", "level4", "level3", "level2", "level1"], var.external_epgs[index].qos_class)])
+    error_message = "Valid values for qos_class in external_epgs are (unspecified, level6, level5, level4, level3, level2, level1)"
   }
   validation {
-    condition     = alltrue([for dscp in var.l3out_external_epg : contains(["CS0", "CS1", "AF11", "AF12", "AF13", "CS2", "AF21", "AF22", "AF23", "CS3", "CS4", "CS5", "CS6", "CS7", "AF31", "AF32", "AF33", "AF41", "AF42", "AF43", "VA", "EF", "unspecified"], dscp["target_dscp"])])
-    error_message = "Valid values for target_dscp in l3out_external_epg are (CS0, CS1, AF11, AF12, AF13, CS2, AF21, AF22, AF23, CS3, CS4, CS5, CS6, CS7, AF31, AF32, AF33, AF41, AF42, AF43, VA, EF, unspecified)"
+    condition     = alltrue([for dscp in var.external_epgs : contains(["CS0", "CS1", "AF11", "AF12", "AF13", "CS2", "AF21", "AF22", "AF23", "CS3", "CS4", "CS5", "CS6", "CS7", "AF31", "AF32", "AF33", "AF41", "AF42", "AF43", "VA", "EF", "unspecified"], dscp["target_dscp"])])
+    error_message = "Valid values for target_dscp in external_epgs are (CS0, CS1, AF11, AF12, AF13, CS2, AF21, AF22, AF23, CS3, CS4, CS5, CS6, CS7, AF31, AF32, AF33, AF41, AF42, AF43, VA, EF, unspecified)"
   }
   validation {
     condition = alltrue([for aggregate in(flatten([
-      for external_epg in var.l3out_external_epg : [
+      for external_epg in var.external_epgs : [
         for subnet in(external_epg.subnets == null) ? [] : external_epg.subnets : [
           subnet.aggregate
         ]
       ]
     ])) : contains(["import-rtctrl", "export-rtctrl", "shared-rtctrl", "none"], aggregate)])
-    error_message = "Valid values for aggregate in subnets of l3out_external_epg are (import-rtctrl, export-rtctrl, shared-rtctrl, none)"
+    error_message = "Valid values for aggregate in subnets of external_epgs are (import-rtctrl, export-rtctrl, shared-rtctrl, none)"
   }
   validation {
     condition = alltrue([for scope in(flatten([
-      for external_epg in var.l3out_external_epg : [
+      for external_epg in var.external_epgs : [
         for subnet in(external_epg.subnets == null) ? [] : external_epg.subnets : [
           subnet.scope
         ]
       ]
     ])) : contains(["import-rtctrl", "export-rtctrl", "shared-rtctrl", "none"], scope)])
-    error_message = "Valid values for scope in subnets of l3out_external_epg are (import-rtctrl, export-rtctrl, shared-rtctrl, import-security, shared-security)"
+    error_message = "Valid values for scope in subnets of external_epgs are (import-rtctrl, export-rtctrl, shared-rtctrl, import-security, shared-security)"
   }
   validation {
     condition = alltrue([for direction in(flatten([
-      for external_epg in var.l3out_external_epg : [
+      for external_epg in var.external_epgs : [
         for profile in(external_epg.route_control_profiles == null) ? [] : external_epg.route_control_profiles : [
           profile.direction
         ]
       ]
     ])) : contains(["export", "import"], direction)])
-    error_message = "Valid values for direction in route_control_profiles of l3out_external_epg are (export, import)"
+    error_message = "Valid values for direction in route_control_profiles of external_epgs are (export, import)"
+  }
+}
+
+############## Variables for  "aci_route_control_profile"" ####################
+variable "route_map_control_profiles" {
+  type = list(object({
+    annotation                 = optional(string)
+    description                = optional(string)
+    alias                      = optional(string)
+    name                       = string
+    route_control_profile_type = optional(string)
+    contexts = optional(list(object({
+      name           = string
+      action         = optional(string)
+      order          = optional(string)
+      set_rule_dn    = optional(string)
+      match_rules_dn = optional(list(string))
+    })))
+  }))
+  validation {
+    condition     = alltrue([for control in var.route_map_control_profiles : contains(["global", "combinable"], control["route_control_profile_type"])])
+    error_message = "Valid values for route_control_profile_type are (global, combinable)"
   }
 }
 
 output "vars" {
   value = [for direction in(flatten([
-    for external_epg in var.l3out_external_epg : [
+    for external_epg in var.external_epgs : [
       for profile in(external_epg.route_control_profiles == null) ? [] : external_epg.route_control_profiles : [
         profile.direction
       ]
