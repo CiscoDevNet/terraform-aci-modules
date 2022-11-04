@@ -63,12 +63,12 @@ variable "target_dscp" {
   }
 }
 
-############## Variables for  "aci_l3out_bgp_external_policy" ######## 
+############## Variable for  "aci_l3out_bgp_external_policy" ######## 
 variable "external_bgp_name_alias" {
   default = ""
 }
 
-############## Variables for  "aci_external_epgs" ####################
+############## Variable for  "aci_external_epgs" ####################
 variable "external_epgs" {
   type = list(object({
     annotation             = optional(string)
@@ -140,7 +140,7 @@ variable "external_epgs" {
   }
 }
 
-############## Variables for  "aci_route_control_profile"" ####################
+############## Variable for  "aci_route_control_profile" ####################
 variable "route_map_control_profiles" {
   type = list(object({
     annotation                 = optional(string)
@@ -159,6 +159,62 @@ variable "route_map_control_profiles" {
   validation {
     condition     = alltrue([for control in var.route_map_control_profiles : contains(["global", "combinable"], control["route_control_profile_type"])])
     error_message = "Valid values for route_control_profile_type are (global, combinable)"
+  }
+}
+
+############## Variable for  "aci_logical_node_profile" ####################
+variable "logical_node_profiles" {
+  type = list(object({
+    annotation  = optional(string)
+    description = optional(string)
+    alias       = optional(string)
+    name        = string
+    #config_issues = optional(string)
+    tag         = optional(string)
+    target_dscp = optional(string)
+    nodes = optional(list(object({
+      # node_dn           = string
+      node_id            = string
+      pod_id             = string
+      router_id          = optional(string)
+      router_id_loopback = optional(string)
+      loopback_address   = optional(string)
+      static_routes = optional(list(object({
+        ip                  = string
+        aggregate           = optional(string)
+        alias               = optional(string)
+        description         = optional(string)
+        fallback_preference = optional(string)
+        route_control       = optional(string)
+        track_policy        = optional(string)
+        next_hop_addresses = optional(list(object({
+          next_hop_ip          = string
+          annotation           = optional(string)
+          alias                = optional(string)
+          preference           = optional(string)
+          nexthop_profile_type = optional(string)
+          description          = optional(string)
+          track_member         = optional(string)
+          track_policy         = optional(string)
+        })))
+      })))
+    })))
+  }))
+  validation {
+    condition     = alltrue([for dscp in var.logical_node_profiles : contains(["CS0", "CS1", "AF11", "AF12", "AF13", "CS2", "AF21", "AF22", "AF23", "CS3", "CS4", "CS5", "CS6", "CS7", "AF31", "AF32", "AF33", "AF41", "AF42", "AF43", "VA", "EF", "unspecified"], dscp["target_dscp"])])
+    error_message = "Valid values for target_dscp in logical_node_profiles are (CS0, CS1, AF11, AF12, AF13, CS2, AF21, AF22, AF23, CS3, CS4, CS5, CS6, CS7, AF31, AF32, AF33, AF41, AF42, AF43, VA, EF, unspecified)"
+  }
+  validation {
+    condition = alltrue([for route_control in(flatten([
+      for node in var.logical_node_profiles : [
+        for static_routes in(node.nodes == null) ? [] : node.nodes : [
+          for route in(static_routes.static_routes == null) ? [] : static_routes.static_routes : [
+            (route.route_control == null) ? "unspecified" : route.route_control
+          ]
+        ]
+      ]
+    ])) : contains(["bfd", "unspecified"], route_control)])
+    error_message = "Valid values for route_control in static_routes of nodes in logical_node_profiles are (bfd, unspecified)"
   }
 }
 
