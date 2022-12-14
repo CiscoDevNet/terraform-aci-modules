@@ -54,6 +54,20 @@ variable "route_control_enforcement" {
   type = bool
 }
 
+variable "route_profiles_for_redistribution" {
+  type = list(object({
+    source       = optional(string)
+    route_map_dn = optional(string)
+  }))
+}
+
+variable "multicast" {
+  type = object({
+    annotation       = optional(string)
+    address_families = optional(list(string))
+  })
+}
+
 variable "target_dscp" {
   type    = string
   default = "unspecified"
@@ -169,11 +183,34 @@ variable "logical_node_profiles" {
     description = optional(string)
     alias       = optional(string)
     name        = string
-    #config_issues = optional(string)
     tag         = optional(string)
     target_dscp = optional(string)
+    bgp_peers_nodes = optional(list(object({
+      ip_address             = string
+      address_control        = optional(list(string))
+      allowed_self_as        = optional(string)
+      annotation             = optional(string)
+      bgp_controls           = optional(list(string))
+      alias                  = optional(string)
+      password               = optional(string)
+      peer_controls          = optional(list(string))
+      private_as_control     = optional(list(string))
+      ebgp_multihop_ttl      = optional(string)
+      weight                 = optional(string)
+      as_number              = optional(string)
+      local_asn              = optional(string)
+      local_as_number_config = optional(string)
+      admin_state            = optional(string)
+      route_control_profiles = optional(list(object({
+        direction = string
+        target_dn = string
+      })))
+    })))
+    bgp_protocol_profile = optional(object({
+      bgp_timers     = optional(string)
+      as_path_policy = optional(string)
+    }))
     nodes = optional(list(object({
-      # node_dn           = string
       node_id            = string
       pod_id             = string
       router_id          = optional(string)
@@ -199,6 +236,147 @@ variable "logical_node_profiles" {
         })))
       })))
     })))
+    interfaces = optional(list(object({
+      name = string
+      bfd = optional(object({
+        authentication_key     = optional(string)
+        authentication_key_id  = optional(string)
+        interface_profile_type = optional(string)
+        description            = optional(string)
+        annotation             = optional(string)
+        bfd_interface_policy   = optional(string)
+      }))
+      hsrp = optional(object({
+        annotation = optional(string)
+        alias      = optional(string)
+        version    = optional(string)
+        hsrp_groups = optional(list(object({
+          name                  = string
+          annotation            = optional(string)
+          description           = optional(string)
+          address_family        = optional(string)
+          group_id              = optional(string)
+          ip                    = optional(string)
+          ip_obtain_mode        = optional(string)
+          mac                   = optional(string)
+          alias                 = optional(string)
+          secondary_virtual_ips = optional(list(string))
+          }
+        )))
+      }))
+      netflow_monitor_policies = optional(list(object({
+        filter_type               = string
+        netflow_monitor_policy_dn = string
+      })))
+      egress_data_policy_dn   = optional(string)
+      ingress_data_policy_dn  = optional(string)
+      custom_qos_policy_dn    = optional(string)
+      arp_interface_policy_dn = optional(string)
+      nd_policy_dn            = optional(string)
+      paths = optional(list(object({
+        interface_type  = string
+        path_type       = string
+        pod_id          = string
+        node_id         = string
+        node2_id        = optional(string)
+        interface_id    = string
+        ip_address      = string
+        mtu             = optional(string)
+        encap           = optional(string)
+        encap_scope     = optional(string)
+        mode            = optional(string)
+        annotation      = optional(string)
+        autostate       = optional(string)
+        ipv6_dad        = optional(string)
+        link_local_addr = optional(string)
+        mac             = optional(string)
+        target_dscp     = optional(string)
+        bgp_peers = optional(list(object({
+          ip_address             = string
+          address_control        = optional(list(string))
+          allowed_self_as        = optional(string)
+          annotation             = optional(string)
+          bgp_controls           = optional(list(string))
+          alias                  = optional(string)
+          password               = optional(string)
+          peer_controls          = optional(list(string))
+          private_as_control     = optional(list(string))
+          ebgp_multihop_ttl      = optional(string)
+          weight                 = optional(string)
+          as_number              = optional(string)
+          local_asn              = optional(string)
+          local_as_number_config = optional(string)
+          admin_state            = optional(string)
+          route_control_profiles = optional(list(object({
+            direction = string
+            target_dn = string
+          })))
+        })))
+        secondary_addresses = optional(list(object({
+          ip_address = string
+          ipv6_dad   = string
+        })))
+        side_A = optional(object({
+          ip_address = string
+          secondary_addresses = optional(list(object({
+            ip_address = string
+            ipv6_dad   = string
+          })))
+        }))
+        side_B = optional(object({
+          ip_address = string
+          secondary_addresses = optional(list(object({
+            ip_address = string
+            ipv6_dad   = string
+          })))
+        }))
+      })))
+      floating_svi = optional(list(object({
+        pod_id          = string
+        node_id         = string
+        ip_address      = string
+        description     = optional(string)
+        mtu             = optional(string)
+        encap           = optional(string)
+        encap_scope     = optional(string)
+        mode            = optional(string)
+        annotation      = optional(string)
+        autostate       = optional(string)
+        ipv6_dad        = optional(string)
+        link_local_addr = optional(string)
+        mac             = optional(string)
+        target_dscp     = optional(string)
+        path_attributes = optional(list(object({
+          target_dn           = string
+          floating_address    = string
+          forged_transmit     = optional(string)
+          mac_change          = optional(string)
+          promiscuous_mode    = optional(string)
+          secondary_addresses = optional(list(string))
+        })))
+        bgp_peers = optional(list(object({
+          ip_address             = string
+          address_control        = optional(list(string))
+          allowed_self_as        = optional(string)
+          annotation             = optional(string)
+          bgp_controls           = optional(list(string))
+          alias                  = optional(string)
+          password               = optional(string)
+          peer_controls          = optional(list(string))
+          private_as_control     = optional(list(string))
+          ebgp_multihop_ttl      = optional(string)
+          weight                 = optional(string)
+          as_number              = optional(string)
+          local_asn              = optional(string)
+          local_as_number_config = optional(string)
+          admin_state            = optional(string)
+          route_control_profiles = optional(list(object({
+            direction = string
+            target_dn = string
+          })))
+        })))
+      })))
+    })))
   }))
   validation {
     condition     = alltrue([for dscp in var.logical_node_profiles : contains(["CS0", "CS1", "AF11", "AF12", "AF13", "CS2", "AF21", "AF22", "AF23", "CS3", "CS4", "CS5", "CS6", "CS7", "AF31", "AF32", "AF33", "AF41", "AF42", "AF43", "VA", "EF", "unspecified"], dscp["target_dscp"])])
@@ -214,16 +392,37 @@ variable "logical_node_profiles" {
         ]
       ]
     ])) : contains(["bfd", "unspecified"], route_control)])
-    error_message = "Valid values for route_control in static_routes of nodes in logical_node_profiles are (bfd, unspecified)"
+    error_message = "Valid values for route_control in static_routes of nodes in logical_node_profiles are (bfd, unspecified) but got: ${compact([for invalid_value in(flatten([
+      for node in var.logical_node_profiles : [
+        for static_routes in(node.nodes == null) ? [] : node.nodes : [
+          for route in(static_routes.static_routes == null) ? [] : static_routes.static_routes : [
+            !contains(["bfd", "unspecified"], (route.route_control == null) ? "unspecified" : route.route_control) ? route.route_control : ""
+          ]
+        ]
+      ]
+    ])) : invalid_value == "" ? 0 : invalid_value])[0]}"
   }
+  # validation {
+  #   condition = alltrue([for path in (flatten([
+  #   for profile in var.logical_node_profiles : [
+  #     for interface in(profile.interfaces == null) ? [] : profile.interfaces : [
+  #       for path in(interface.paths == null) ? [] : interface.paths : [
+  #         path
+  #     ]
+  #   ]
+  # ]])): contains(["vpc", "dpc"], path.path_type) && contains([null,""],path.node2_id)])
+  #   error_message = "Value for node2_id is required when path_type is in (vpc, dpc)"
+  # }
 }
 
 output "vars" {
-  value = [for direction in(flatten([
-    for external_epg in var.external_epgs : [
-      for profile in(external_epg.route_control_profiles == null) ? [] : external_epg.route_control_profiles : [
-        profile.direction
+  value = [for y in(flatten([
+    for node in var.logical_node_profiles : [
+      for static_routes in(node.nodes == null) ? [] : node.nodes : [
+        for route in(static_routes.static_routes == null) ? [] : static_routes.static_routes : {
+          x = !contains(["bfd", "unspecified"], (route.route_control == null) ? "unspecified" : route.route_control) ? route.route_control : null
+        }
       ]
     ]
-  ])) : direction]
+  ])) : y.x == null ? "k" : y.x][0]
 }
