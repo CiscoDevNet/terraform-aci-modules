@@ -19,9 +19,96 @@ resource "aci_tenant" "tenant" {
   description = "Created for l3out module"
 }
 
+resource "aci_application_profile" "app_profile_for_epg" {
+  tenant_dn   = aci_tenant.tenant.id
+  name        = "ap_for_epg"
+  description = "This app profile is created by terraform ACI providers"
+}
+
+resource "aci_contract" "rs_prov_contract" {
+  tenant_dn   = aci_tenant.tenant.id
+  name        = "rs_prov_contract"
+  description = "This contract is created by terraform ACI provider"
+  scope       = "tenant"
+  target_dscp = "VA"
+  prio        = "unspecified"
+}
+
+resource "aci_contract" "rs_cons_contract" {
+  tenant_dn   = aci_tenant.tenant.id
+  name        = "rs_cons_contract"
+  description = "This contract is created by terraform ACI provider"
+  scope       = "tenant"
+  target_dscp = "VA"
+  prio        = "unspecified"
+}
+
+resource "aci_contract" "intra_epg_contract" {
+  tenant_dn   = aci_tenant.tenant.id
+  name        = "intra_epg_contract"
+  description = "This contract is created by terraform ACI provider"
+  scope       = "tenant"
+  target_dscp = "VA"
+  prio        = "unspecified"
+}
+
+resource "aci_imported_contract" "imported_contract" {
+  tenant_dn = aci_tenant.tenant.id
+  name      = "imported_contract"
+}
+
+resource "aci_taboo_contract" "taboo_contract" {
+  tenant_dn = aci_tenant.tenant.id
+  name      = "testcon"
+}
+
 resource "aci_vrf" "vrf" {
   tenant_dn = aci_tenant.tenant.id
   name      = "vrf1"
+}
+
+resource "aci_rest_managed" "vrf_fallback_route_group1" {
+  dn         = "${aci_vrf.vrf.id}/fbrg-fallback_grp_1"
+  class_name = "fvFBRGroup"
+  content = {
+    name = "fallback_grp_1"
+  }
+  child {
+    rn         = "pfx-[10.1.1.2/24]"
+    class_name = "fvFBRoute"
+    content = {
+      fbrPrefix = "10.1.1.2/24"
+    }
+  }
+  child {
+    rn         = "nexthop-[10.1.1.3]"
+    class_name = "fvFBRMember"
+    content = {
+      rnhAddr = "10.1.1.3"
+    }
+  }
+}
+
+resource "aci_rest_managed" "vrf_fallback_route_group2" {
+  dn         = "${aci_vrf.vrf.id}/fbrg-fallback_grp_2"
+  class_name = "fvFBRGroup"
+  content = {
+    name = "fallback_grp_2"
+  }
+  child {
+    rn         = "pfx-[11.1.1.2/24]"
+    class_name = "fvFBRoute"
+    content = {
+      fbrPrefix = "11.1.1.2/24"
+    }
+  }
+  child {
+    rn         = "nexthop-[11.1.1.3]"
+    class_name = "fvFBRMember"
+    content = {
+      rnhAddr = "11.1.1.3"
+    }
+  }
 }
 
 resource "aci_l3_domain_profile" "profile" {
@@ -82,6 +169,74 @@ resource "aci_bgp_best_path_policy" "best_path_policy" {
   ctrl      = "asPathMultipathRelax"
 }
 
+resource "aci_physical_domain" "physical_domain" {
+  name = "PhysDom"
+}
+
+resource "aci_bfd_interface_policy" "bfd" {
+  tenant_dn     = aci_tenant.tenant.id
+  name          = "bfd_policy"
+  admin_st      = "enabled"
+  ctrl          = "opt-subif"
+  detect_mult   = "3"
+  echo_admin_st = "disabled"
+  echo_rx_intvl = "50"
+  min_rx_intvl  = "50"
+  min_tx_intvl  = "50"
+}
+
+resource "aci_rest_managed" "bfd_multihop_protocol_profile" {
+  dn         = "${aci_tenant.tenant.id}/bfdMhNodePol-test"
+  class_name = "bfdMhNodePol"
+  content = {
+    name       = "test"
+    adminSt    = "enabled"
+    minRxIntvl = "250"
+    minTxIntvl = "250"
+    detectMult = "3"
+  }
+}
+
+resource "aci_rest_managed" "bfd_multihop_interface_profile1" {
+  dn         = "${aci_tenant.tenant.id}/bfdMhIfPol-test1"
+  class_name = "bfdMhIfPol"
+  content = {
+    name       = "test1"
+    adminSt    = "enabled"
+    minRxIntvl = "250"
+    minTxIntvl = "250"
+    detectMult = "3"
+  }
+}
+
+resource "aci_rest_managed" "bfd_multihop_interface_profile2" {
+  dn         = "${aci_tenant.tenant.id}/bfdMhIfPol-test2"
+  class_name = "bfdMhIfPol"
+  content = {
+    name       = "test2"
+    adminSt    = "disabled"
+    minRxIntvl = "250"
+    minTxIntvl = "250"
+    detectMult = "3"
+  }
+}
+
+resource "aci_rest_managed" "netflow1" {
+  dn         = "${aci_tenant.tenant.id}/monitorpol-test1"
+  class_name = "netflowMonitorPol"
+  content = {
+    name = "test1"
+  }
+}
+
+resource "aci_rest_managed" "netflow2" {
+  dn         = "${aci_tenant.tenant.id}/monitorpol-test2"
+  class_name = "netflowMonitorPol"
+  content = {
+    name = "test2"
+  }
+}
+
 module "l3out" {
   source                         = "./l3out"
   tenant_dn                      = aci_tenant.tenant.id
@@ -116,88 +271,6 @@ module "l3out" {
   multicast = {
     address_families = ["ipv4", "ipv6"]
   }
-  external_epgs = [
-    {
-      name                   = "ext_epg1"
-      description            = "l3out_ext_epg1"
-      flood_on_encap         = "enabled"
-      label_match_criteria   = "All"
-      preferred_group_member = true
-      qos_class              = "level4"
-      target_dscp            = "VA"
-      route_control_profiles = [
-        {
-          direction    = "export"
-          route_map_dn = aci_route_control_profile.profile.id
-        },
-        {
-          direction    = "import"
-          route_map_dn = aci_route_control_profile.profile.id
-        }
-      ]
-      subnets = [
-        {
-          ip        = "172.16.0.0/16/24"
-          scope     = ["import-rtctrl", "export-rtctrl"]
-          aggregate = "shared-rtctrl"
-
-        },
-        {
-          ip        = "11.0.0.0/24"
-          scope     = ["import-rtctrl", "export-rtctrl"]
-          aggregate = "none"
-          route_control_profiles = [
-            {
-              direction    = "export"
-              route_map_dn = "uni/tn-module_l3out_tf_tenant/out-module_l3out/prof-test"
-            }
-          ]
-        },
-      ]
-    },
-    {
-      name                   = "ext_epg2"
-      description            = "l3out_ext_epg2"
-      flood_on_encap         = "enabled"
-      label_match_criteria   = "All"
-      preferred_group_member = false
-      qos_class              = "level1"
-      target_dscp            = "CS0"
-      route_control_profiles = [
-        {
-          direction    = "export"
-          route_map_dn = aci_route_control_profile.profile.id
-        }
-      ]
-    },
-    {
-      name                   = "ext_epg3"
-      description            = "l3out_ext_epg3"
-      flood_on_encap         = "disabled"
-      label_match_criteria   = "All"
-      preferred_group_member = true
-      qos_class              = "level3"
-      target_dscp            = "CS4"
-      subnets = [
-        {
-          ip        = "21.1.1.0/24"
-          scope     = ["import-rtctrl", "export-rtctrl"]
-          aggregate = "shared-rtctrl"
-          route_control_profiles = [
-            {
-              direction    = "import"
-              route_map_dn = "uni/tn-module_l3out_tf_tenant/out-module_l3out/prof-ok"
-            }
-          ]
-        },
-        {
-          ip        = "33.1.1.0/24"
-          scope     = ["import-rtctrl", "export-rtctrl"]
-          aggregate = "none"
-        }
-      ]
-    }
-  ]
   route_map_control_profiles = [
     {
       name                       = "profile1"
@@ -253,6 +326,111 @@ module "l3out" {
       ]
     }
   ]
+  default_leak_policy = {
+    always   = "yes"
+    criteria = "in-addition"
+    scope    = ["ctx", "l3-out"]
+  }
+  fallback_route_group_dns = [aci_rest_managed.vrf_fallback_route_group1.id, aci_rest_managed.vrf_fallback_route_group2.id]
+  external_epgs = [
+    {
+      name                        = "ext_epg1"
+      description                 = "l3out_ext_epg1"
+      flood_on_encap              = "enabled"
+      label_match_criteria        = "All"
+      preferred_group_member      = true
+      qos_class                   = "level4"
+      target_dscp                 = "VA"
+      consumed_contract_interface = aci_imported_contract.imported_contract.id
+      provided_contract           = aci_contract.rs_prov_contract.id
+      consumed_contract           = aci_contract.rs_cons_contract.id
+      taboo_contract              = aci_taboo_contract.taboo_contract.id
+      contract_masters = [
+        {
+          external_epg = "ext_epg2"
+          l3out        = "module_l3out"
+        },
+      ]
+      route_control_profiles = [
+        {
+          direction = "export"
+          name      = "profile1"
+        },
+        {
+          direction = "import"
+          name      = "profile3"
+        }
+      ]
+      subnets = [
+        {
+          ip        = "172.16.0.0/24"
+          scope     = ["import-rtctrl", "export-rtctrl"]
+          aggregate = "shared-rtctrl"
+
+        },
+        {
+          ip        = "11.0.0.0/24"
+          scope     = ["import-rtctrl", "export-rtctrl"]
+          aggregate = "none"
+          route_control_profiles = [
+            {
+              direction    = "export"
+              route_map_dn = aci_route_control_profile.profile.id
+            }
+          ]
+        },
+      ]
+    },
+    {
+      name                   = "ext_epg2"
+      description            = "l3out_ext_epg2"
+      flood_on_encap         = "enabled"
+      label_match_criteria   = "All"
+      preferred_group_member = false
+      qos_class              = "level1"
+      target_dscp            = "CS0"
+      contract_masters = [
+        {
+          external_epg = "ext_epg3"
+          l3out        = "module_l3out"
+        }
+      ]
+      route_control_profiles = [
+        {
+          direction = "export"
+          name      = "profile1"
+        }
+      ]
+    },
+    {
+      name                        = "ext_epg3"
+      description                 = "l3out_ext_epg3"
+      flood_on_encap              = "disabled"
+      label_match_criteria        = "All"
+      preferred_group_member      = true
+      qos_class                   = "level3"
+      target_dscp                 = "CS4"
+      consumed_contract_interface = aci_imported_contract.imported_contract.id
+      subnets = [
+        {
+          ip        = "21.1.1.0/24"
+          scope     = ["import-rtctrl", "export-rtctrl"]
+          aggregate = "shared-rtctrl"
+          route_control_profiles = [
+            {
+              direction    = "import"
+              route_map_dn = aci_route_control_profile.profile2.id
+            }
+          ]
+        },
+        {
+          ip        = "33.1.1.0/24"
+          scope     = ["import-rtctrl", "export-rtctrl"]
+          aggregate = "none"
+        }
+      ]
+    }
+  ]
   logical_node_profiles = [
     {
       name          = "node_profile1"
@@ -261,6 +439,9 @@ module "l3out" {
       bgp_protocol_profile = {
         bgp_timers     = aci_bgp_timers.timer.id
         as_path_policy = aci_bgp_best_path_policy.best_path_policy.id
+      }
+      bfd_multihop_protocol_profile = {
+        bfd_multihop_node_policy_name = aci_rest_managed.bfd_multihop_protocol_profile.content.name
       }
       nodes = [
         {
@@ -314,11 +495,11 @@ module "l3out" {
       interfaces = [
         {
           name = "interface1"
-          bfd = {
+          bfd_interface_profile = {
             authentication_key     = "sh1"
             authentication_key_id  = "1"
             interface_profile_type = "sha1"
-            bfd_interface_policy   = "uni/tn-common/bfdIfPol-BFD_POLICY"
+            bfd_interface_policy   = aci_bfd_interface_policy.bfd.id
           }
           paths = [
             {
@@ -463,7 +644,7 @@ module "l3out" {
               target_dscp = "EF"
               path_attributes = [
                 {
-                  target_dn           = "uni/phys-PhyDom"
+                  target_dn           = aci_physical_domain.physical_domain.id
                   floating_address    = "10.23.2.1/12"
                   forged_transmit     = "Disabled"
                   mac_change          = "Disabled"
@@ -518,7 +699,7 @@ module "l3out" {
               target_dscp = "EF"
               path_attributes = [
                 {
-                  target_dn           = "uni/phys-PhyDom"
+                  target_dn           = aci_physical_domain.physical_domain.id
                   floating_address    = "10.23.2.2/12"
                   forged_transmit     = "Disabled"
                   mac_change          = "Disabled"
@@ -549,6 +730,21 @@ module "l3out" {
         },
         {
           name = "interface2"
+          netflow_monitor_policies = [
+            {
+              filter_type                 = "ce"
+              netflow_monitor_policy_name = aci_rest_managed.netflow1.id
+            },
+            {
+              filter_type                 = "ipv4"
+              netflow_monitor_policy_name = aci_rest_managed.netflow2.id
+            }
+          ]
+          bfd_multihop_interface_profile = {
+            authentication_key_id              = "1"
+            authentication_type                = "sha1"
+            bfd_multihop_interface_policy_name = aci_rest_managed.bfd_multihop_interface_profile1.content.name
+          }
           hsrp = {
             version = "v1"
             hsrp_groups = [
@@ -619,6 +815,11 @@ module "l3out" {
       name          = "node_profile2"
       config_issues = "routerid-not-changable-with-mcast"
       target_dscp   = "AF11"
+      bfd_multihop_protocol_profile = {
+        authentication_type           = "sha1"
+        authentication_key_id         = "1"
+        bfd_multihop_node_policy_name = aci_rest_managed.bfd_multihop_protocol_profile.content.name
+      }
       bgp_peers_nodes = [
         {
           ip_address         = "10.1.1.20"
@@ -658,11 +859,16 @@ module "l3out" {
       interfaces = [
         {
           name = "interface"
-          bfd = {
+          bfd_interface_profile = {
             authentication_key     = "sh1"
             authentication_key_id  = "5"
             interface_profile_type = "sha1"
-            bfd_interface_policy   = "uni/tn-common/bfdIfPol-default"
+            bfd_interface_policy   = aci_bfd_interface_policy.bfd.id
+          }
+          bfd_multihop_interface_profile = {
+            authentication_key_id              = "4"
+            authentication_type                = "sha1"
+            bfd_multihop_interface_policy_name = aci_rest_managed.bfd_multihop_interface_profile2.content.name
           }
           hsrp = {
             version = "v1"
@@ -798,14 +1004,24 @@ module "l3out" {
       interfaces = [
         {
           name = "interface5"
+          netflow_monitor_policies = [
+            {
+              filter_type                 = "ipv6"
+              netflow_monitor_policy_name = aci_rest_managed.netflow2.id
+            },
+            {
+              filter_type                 = "ce"
+              netflow_monitor_policy_name = aci_rest_managed.netflow1.id
+            }
+          ]
         },
         {
           name = "interface3"
-          bfd = {
+          bfd_interface_profile = {
             authentication_key     = "sh5"
             authentication_key_id  = "1"
             interface_profile_type = "sha1"
-            bfd_interface_policy   = "uni/tn-common/bfdIfPol-default"
+            bfd_interface_policy   = aci_bfd_interface_policy.bfd.id
           }
           hsrp = {
             version = "v2"
@@ -1034,7 +1250,7 @@ module "l3out" {
               target_dscp = "EF"
               path_attributes = [
                 {
-                  target_dn           = "uni/phys-PhyDom"
+                  target_dn           = aci_physical_domain.physical_domain.id
                   vlan                = "vlan-3"
                   floating_address    = "10.23.2.5/12"
                   forged_transmit     = "Disabled"
@@ -1089,7 +1305,7 @@ module "l3out" {
               target_dscp = "EF"
               path_attributes = [
                 {
-                  target_dn           = "uni/phys-PhyDom"
+                  target_dn           = aci_physical_domain.physical_domain.id
                   floating_address    = "10.23.2.8/12"
                   forged_transmit     = "Disabled"
                   mac_change          = "Disabled"
@@ -1106,5 +1322,5 @@ module "l3out" {
 }
 
 output "test" {
-  value = module.l3out.bgp_peers
+  value = module.l3out.debug
 }

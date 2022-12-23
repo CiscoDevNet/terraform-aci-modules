@@ -5,6 +5,15 @@ locals {
     if external_epg.route_control_profiles != null
   }
 
+  external_epg_contract_masters = (flatten([
+    for external_epg in var.external_epgs : [
+      for contract in(external_epg.contract_masters == null) ? [] : external_epg.contract_masters : {
+        external_epg_name = external_epg.name
+        contract          = contract
+      }
+    ]
+  ]))
+
   external_epg_subnets = (flatten([
     for external_epg in var.external_epgs : [
       for subnet in(external_epg.subnets == null) ? [] : external_epg.subnets : {
@@ -102,6 +111,16 @@ locals {
         profile_name          = profile.name
         interface_placeholder = interface.name
         interface             = interface
+      }
+    ]
+  ]))
+
+  logical_interfaces_netflow_monitor = (flatten([
+    for interface in local.logical_interfaces : [
+      for netflow in(interface.interface.netflow_monitor_policies == null) ? [] : interface.interface.netflow_monitor_policies : {
+        netflow_id          = interface.interface.name
+        netflow_placeholder = netflow.filter_type
+        netflow             = netflow
       }
     ]
   ]))
@@ -294,34 +313,69 @@ resource "aci_l3out_bgp_external_policy" "external_bgp" {
 resource "aci_external_network_instance_profile" "l3out_external_epgs" {
   for_each = { for ext_epg in var.external_epgs : ext_epg.name => ext_epg }
 
-  l3_outside_dn  = aci_l3_outside.l3out.id
-  annotation     = each.value.annotation
-  description    = each.value.description
-  exception_tag  = each.value.exception_tag
-  flood_on_encap = each.value.flood_on_encapsulation
-  match_t        = each.value.label_match_criteria
-  name_alias     = each.value.alias
-  name           = each.value.name
-  pref_gr_memb   = each.value.preferred_group_member == true ? "include" : "exclude"
-  prio           = each.value.qos_class
-  target_dscp    = each.value.target_dscp
+  l3_outside_dn          = aci_l3_outside.l3out.id
+  annotation             = each.value.annotation
+  description            = each.value.description
+  exception_tag          = each.value.exception_tag
+  flood_on_encap         = each.value.flood_on_encapsulation
+  match_t                = each.value.label_match_criteria
+  name_alias             = each.value.alias
+  name                   = each.value.name
+  pref_gr_memb           = each.value.preferred_group_member == true ? "include" : "exclude"
+  prio                   = each.value.qos_class
+  target_dscp            = each.value.target_dscp
+  relation_fv_rs_prov    = each.value.provided_contract != null ? [each.value.provided_contract] : []
+  relation_fv_rs_cons_if = each.value.consumed_contract_interface != null ? [each.value.consumed_contract_interface] : []
+  relation_fv_rs_cons    = each.value.consumed_contract != null ? [each.value.consumed_contract] : []
+  relation_fv_rs_prot_by = each.value.taboo_contract != null ? [each.value.taboo_contract] : []
 
   dynamic "relation_l3ext_rs_inst_p_to_profile" {
     for_each = contains(keys(local.external_epg_route_control_profiles), each.value.name) ? local.external_epg_route_control_profiles[each.value.name] : []
     content {
       direction              = relation_l3ext_rs_inst_p_to_profile.value.direction
-      tn_rtctrl_profile_name = relation_l3ext_rs_inst_p_to_profile.value.route_map_dn
+      tn_rtctrl_profile_name = relation_l3ext_rs_inst_p_to_profile.value.name
     }
   }
 }
 
+resource "aci_rest_managed" "l3out_external_epg_contract_masters" {
+  for_each = { for contract in local.external_epg_contract_masters : contract.external_epg_name => contract }
+
+  dn         = "${aci_external_network_instance_profile.l3out_external_epgs[each.key].id}/rssecInherited-[${aci_l3_outside.l3out.tenant_dn}/out-${each.value.contract.l3out}/instP-${each.value.contract.external_epg}]"
+  class_name = "fvRsSecInherited"
+  content = {
+    tDn = "${aci_l3_outside.l3out.tenant_dn}/out-${each.value.contract.l3out}/instP-${each.value.contract.external_epg}"
+  }
+}
+
 resource "aci_rest_managed" "l3out_route_profiles_for_redistribution" {
-  for_each   = { for redistribution in var.route_profiles_for_redistribution : redistribution.source => redistribution }
+  for_each = { for redistribution in var.route_profiles_for_redistribution : redistribution.source => redistribution }
+
   dn         = "${aci_l3_outside.l3out.id}/rsredistributePol-[${split("prof-", each.value.route_map_dn)[1]}]-${each.value.source}"
   class_name = "l3extRsRedistributePol"
   content = {
-    src = each.value.source
-    tDn = each.value.route_map_dn
+    src                 = each.value.source
+    tnRtctrlProfileName = split("prof-", each.value.route_map_dn)[1]
+  }
+}
+
+resource "aci_rest_managed" "l3out_default_leak_policy" {
+  dn         = "${aci_l3_outside.l3out.id}/defrtleak"
+  class_name = "l3extDefaultRouteLeakP"
+  content = {
+    always   = var.default_leak_policy.always
+    criteria = var.default_leak_policy.criteria
+    scope    = join(",", var.default_leak_policy.scope)
+  }
+}
+
+resource "aci_rest_managed" "l3out_fallback_route_group" {
+  for_each = { for idx, dn in var.fallback_route_group_dns : idx => dn }
+
+  dn         = "${aci_l3_outside.l3out.id}/rsoutToFBRGroup-[${each.value}]"
+  class_name = "l3extRsOutToFBRGroup"
+  content = {
+    tDn = each.value
   }
 }
 
@@ -400,6 +454,25 @@ resource "aci_l3out_bgp_protocol_profile" "bgp_protocol" {
   relation_bgp_rs_bgp_node_ctx_pol   = each.value.bgp_protocol_profile.bgp_timers
 }
 
+resource "aci_rest_managed" "l3out_bfd_multihop_protocol_profile" {
+  for_each = { for bfd in var.logical_node_profiles : bfd.name => bfd if bfd.bfd_multihop_protocol_profile != null }
+
+  dn         = "${aci_logical_node_profile.logical_node_profile[each.key].id}/bfdMhNodeP"
+  class_name = "bfdMhNodeP"
+  content = {
+    type  = each.value.bfd_multihop_protocol_profile.authentication_type
+    keyId = each.value.bfd_multihop_protocol_profile.authentication_key_id
+    key   = each.value.bfd_multihop_protocol_profile.authentication_key
+  }
+  child {
+    rn         = "rsMhNodePol"
+    class_name = "bfdRsMhNodePol"
+    content = {
+      tnBfdMhNodePolName = each.value.bfd_multihop_protocol_profile.bfd_multihop_node_policy_name
+    }
+  }
+}
+
 resource "aci_bgp_peer_connectivity_profile" "node_bgp_peer" {
   for_each = { for bgp_peer in local.bgp_peers_nodes : bgp_peer.bgp_peer_placeholder => bgp_peer }
 
@@ -473,17 +546,25 @@ resource "aci_l3out_static_route_next_hop" "next_hop_address" {
 resource "aci_logical_interface_profile" "logical_interface_profile" {
   for_each = { for interface in local.logical_interfaces : interface.interface_placeholder => interface }
 
-  logical_node_profile_dn = aci_logical_node_profile.logical_node_profile[each.value.profile_name].id
-  name                    = each.value.interface.name
+  logical_node_profile_dn               = aci_logical_node_profile.logical_node_profile[each.value.profile_name].id
+  name                                  = each.value.interface.name
   relation_l3ext_rs_egress_qos_dpp_pol  = each.value.interface.egress_data_policy_dn
   relation_l3ext_rs_ingress_qos_dpp_pol = each.value.interface.ingress_data_policy_dn
   relation_l3ext_rs_l_if_p_cust_qos_pol = each.value.interface.custom_qos_policy_dn
   relation_l3ext_rs_arp_if_pol          = each.value.interface.arp_interface_policy_dn
   relation_l3ext_rs_nd_if_pol           = each.value.interface.nd_policy_dn
+
+  dynamic "relation_l3ext_rs_l_if_p_to_netflow_monitor_pol" {
+    for_each = { for netflow in local.logical_interfaces_netflow_monitor : netflow.netflow_placeholder => netflow.netflow if each.value.interface.name == netflow.netflow_id }
+    content {
+      flt_type                    = relation_l3ext_rs_l_if_p_to_netflow_monitor_pol.value.filter_type
+      tn_netflow_monitor_pol_name = relation_l3ext_rs_l_if_p_to_netflow_monitor_pol.value.netflow_monitor_policy_name
+    }
+  }
 }
 
 resource "aci_l3out_bfd_interface_profile" "bfd_interface" {
-  for_each = { for interface in local.logical_interfaces : interface.interface_placeholder => interface.interface.bfd if interface.interface.bfd != null }
+  for_each = { for interface in local.logical_interfaces : interface.interface_placeholder => interface.interface.bfd_interface_profile if interface.interface.bfd_interface_profile != null }
 
   logical_interface_profile_dn = aci_logical_interface_profile.logical_interface_profile[each.key].id
   annotation                   = each.value.annotation
@@ -492,6 +573,25 @@ resource "aci_l3out_bfd_interface_profile" "bfd_interface" {
   key_id                       = each.value.authentication_key_id
   interface_profile_type       = each.value.interface_profile_type
   relation_bfd_rs_if_pol       = each.value.bfd_interface_policy
+}
+
+resource "aci_rest_managed" "l3out_bfd_multihop_interface_profile" {
+  for_each = { for interface in local.logical_interfaces : interface.interface_placeholder => interface.interface.bfd_multihop_interface_profile if interface.interface.bfd_multihop_interface_profile != null }
+
+  dn         = "${aci_logical_interface_profile.logical_interface_profile[each.key].id}/bfdMhIfP"
+  class_name = "bfdMhIfP"
+  content = {
+    type  = each.value.authentication_type
+    keyId = each.value.authentication_key_id
+    key   = each.value.authentication_key
+  }
+  child {
+    rn         = "rsMhIfPol"
+    class_name = "bfdRsMhIfPol"
+    content = {
+      tnBfdMhIfPolName = each.value.bfd_multihop_interface_policy_name
+    }
+  }
 }
 
 resource "aci_l3out_hsrp_interface_profile" "hsrp_interface" {
@@ -682,58 +782,6 @@ resource "aci_bgp_peer_connectivity_profile" "interface_bgp_peer" {
   }
 }
 
-output "subnets" {
+output "debug" {
   value = local.external_epg_subnets
-}
-
-output "external_epg_route_control_profiles" {
-  value = local.external_epg_route_control_profiles
-}
-
-output "external_epg_subnet_route_control_profiles" {
-  value = local.external_epg_subnet_route_control_profiles
-}
-
-output "route_control_context_match_rules_dn" {
-  value = local.route_control_context_match_rules_dn
-}
-
-output "logical_nodes_loopback_addresses" {
-  value = local.logical_nodes_loopback_addresses
-}
-
-output "logical_nodes_static_routes" {
-  value = local.logical_nodes_static_routes
-}
-
-output "static_route_next_hops" {
-  value = local.static_route_next_hops
-}
-
-output "secondary_address" {
-  value = local.secondary_address
-}
-
-output "address_A" {
-  value = local.address_A
-}
-
-output "address_B" {
-  value = local.address_B
-}
-
-output "secondary_address_A" {
-  value = local.secondary_address_A
-}
-
-output "secondary_address_B" {
-  value = local.secondary_address_B
-}
-
-output "secondary_address_hsrp_vip" {
-  value = local.hsrp_secondary_vips
-}
-
-output "bgp_peers" {
-  value = local.bgp_peers
 }
