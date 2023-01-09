@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     aci = {
-      source = "ciscoDevNet/aci"
+      source = "CiscoDevNet/aci"
     }
   }
 }
@@ -13,232 +13,8 @@ provider "aci" {
   insecure = true
 }
 
-# Define an ACI Tenant Resource.
-resource "aci_tenant" "tenant" {
-  name        = "module_l3out_tf_tenant"
-  description = "Created for l3out module"
-}
-
-resource "aci_application_profile" "app_profile_for_epg" {
-  tenant_dn   = aci_tenant.tenant.id
-  name        = "ap_for_epg"
-  description = "This app profile is created by terraform ACI providers"
-}
-
-resource "aci_contract" "rs_prov_contract" {
-  tenant_dn   = aci_tenant.tenant.id
-  name        = "rs_prov_contract"
-  description = "This contract is created by terraform ACI provider"
-  scope       = "tenant"
-  target_dscp = "VA"
-  prio        = "unspecified"
-}
-
-resource "aci_contract" "rs_cons_contract" {
-  tenant_dn   = aci_tenant.tenant.id
-  name        = "rs_cons_contract"
-  description = "This contract is created by terraform ACI provider"
-  scope       = "tenant"
-  target_dscp = "VA"
-  prio        = "unspecified"
-}
-
-resource "aci_contract" "intra_epg_contract" {
-  tenant_dn   = aci_tenant.tenant.id
-  name        = "intra_epg_contract"
-  description = "This contract is created by terraform ACI provider"
-  scope       = "tenant"
-  target_dscp = "VA"
-  prio        = "unspecified"
-}
-
-resource "aci_imported_contract" "imported_contract" {
-  tenant_dn = aci_tenant.tenant.id
-  name      = "imported_contract"
-}
-
-resource "aci_taboo_contract" "taboo_contract" {
-  tenant_dn = aci_tenant.tenant.id
-  name      = "testcon"
-}
-
-resource "aci_vrf" "vrf" {
-  tenant_dn = aci_tenant.tenant.id
-  name      = "vrf1"
-}
-
-resource "aci_rest_managed" "vrf_fallback_route_group1" {
-  dn         = "${aci_vrf.vrf.id}/fbrg-fallback_grp_1"
-  class_name = "fvFBRGroup"
-  content = {
-    name = "fallback_grp_1"
-  }
-  child {
-    rn         = "pfx-[10.1.1.2/24]"
-    class_name = "fvFBRoute"
-    content = {
-      fbrPrefix = "10.1.1.2/24"
-    }
-  }
-  child {
-    rn         = "nexthop-[10.1.1.3]"
-    class_name = "fvFBRMember"
-    content = {
-      rnhAddr = "10.1.1.3"
-    }
-  }
-}
-
-resource "aci_rest_managed" "vrf_fallback_route_group2" {
-  dn         = "${aci_vrf.vrf.id}/fbrg-fallback_grp_2"
-  class_name = "fvFBRGroup"
-  content = {
-    name = "fallback_grp_2"
-  }
-  child {
-    rn         = "pfx-[11.1.1.2/24]"
-    class_name = "fvFBRoute"
-    content = {
-      fbrPrefix = "11.1.1.2/24"
-    }
-  }
-  child {
-    rn         = "nexthop-[11.1.1.3]"
-    class_name = "fvFBRMember"
-    content = {
-      rnhAddr = "11.1.1.3"
-    }
-  }
-}
-
-resource "aci_l3_domain_profile" "profile" {
-  name = "l3_domain_profile"
-}
-
-resource "aci_route_control_profile" "profile" {
-  parent_dn                  = aci_tenant.tenant.id
-  name                       = "route_profile"
-  route_control_profile_type = "global"
-}
-
-resource "aci_route_control_profile" "profile2" {
-  parent_dn                  = aci_tenant.tenant.id
-  name                       = "route_profile2"
-  route_control_profile_type = "global"
-}
-
-resource "aci_match_rule" "rule" {
-  tenant_dn = aci_tenant.tenant.id
-  name      = "match_rule"
-}
-
-resource "aci_match_rule" "rule2" {
-  tenant_dn = aci_tenant.tenant.id
-  name      = "match_rule2"
-}
-
-resource "aci_match_rule" "rule3" {
-  tenant_dn = aci_tenant.tenant.id
-  name      = "match_rule3"
-}
-
-resource "aci_action_rule_profile" "set_rule" {
-  tenant_dn = aci_tenant.tenant.id
-  name      = "rule1"
-}
-
-resource "aci_action_rule_profile" "set_rule2" {
-  tenant_dn = aci_tenant.tenant.id
-  name      = "rule2"
-}
-
-resource "aci_bgp_timers" "timer" {
-  tenant_dn    = aci_tenant.tenant.id
-  name         = "timer1"
-  gr_ctrl      = "helper"
-  hold_intvl   = "189"
-  ka_intvl     = "65"
-  max_as_limit = "70"
-  name_alias   = "aliasing"
-  stale_intvl  = "15"
-}
-
-resource "aci_bgp_best_path_policy" "best_path_policy" {
-  tenant_dn = aci_tenant.tenant.id
-  name      = "bgp_path1"
-  ctrl      = "asPathMultipathRelax"
-}
-
-resource "aci_physical_domain" "physical_domain" {
-  name = "PhysDom"
-}
-
-resource "aci_bfd_interface_policy" "bfd" {
-  tenant_dn     = aci_tenant.tenant.id
-  name          = "bfd_policy"
-  admin_st      = "enabled"
-  ctrl          = "opt-subif"
-  detect_mult   = "3"
-  echo_admin_st = "disabled"
-  echo_rx_intvl = "50"
-  min_rx_intvl  = "50"
-  min_tx_intvl  = "50"
-}
-
-resource "aci_rest_managed" "bfd_multihop_protocol_profile" {
-  dn         = "${aci_tenant.tenant.id}/bfdMhNodePol-test"
-  class_name = "bfdMhNodePol"
-  content = {
-    name       = "test"
-    adminSt    = "enabled"
-    minRxIntvl = "250"
-    minTxIntvl = "250"
-    detectMult = "3"
-  }
-}
-
-resource "aci_rest_managed" "bfd_multihop_interface_profile1" {
-  dn         = "${aci_tenant.tenant.id}/bfdMhIfPol-test1"
-  class_name = "bfdMhIfPol"
-  content = {
-    name       = "test1"
-    adminSt    = "enabled"
-    minRxIntvl = "250"
-    minTxIntvl = "250"
-    detectMult = "3"
-  }
-}
-
-resource "aci_rest_managed" "bfd_multihop_interface_profile2" {
-  dn         = "${aci_tenant.tenant.id}/bfdMhIfPol-test2"
-  class_name = "bfdMhIfPol"
-  content = {
-    name       = "test2"
-    adminSt    = "disabled"
-    minRxIntvl = "250"
-    minTxIntvl = "250"
-    detectMult = "3"
-  }
-}
-
-resource "aci_rest_managed" "netflow1" {
-  dn         = "${aci_tenant.tenant.id}/monitorpol-test1"
-  class_name = "netflowMonitorPol"
-  content = {
-    name = "test1"
-  }
-}
-
-resource "aci_rest_managed" "netflow2" {
-  dn         = "${aci_tenant.tenant.id}/monitorpol-test2"
-  class_name = "netflowMonitorPol"
-  content = {
-    name = "test2"
-  }
-}
-
 module "l3out" {
-  source                         = "./l3out"
+  source                         = "../l3out"
   tenant_dn                      = aci_tenant.tenant.id
   name                           = "module_l3out"
   alias                          = "l3out"
@@ -248,6 +24,11 @@ module "l3out" {
   vrf_dn                         = aci_vrf.vrf.id
   l3_domain_dn                   = aci_l3_domain_profile.profile.id
   route_profile_for_interleak_dn = aci_route_control_profile.profile.id
+
+  bgp = {
+    enabled = true
+  }
+
   route_control_for_dampening = [
     {
       address_family = "ipv4"
@@ -258,6 +39,7 @@ module "l3out" {
       route_map_dn   = aci_route_control_profile.profile.id
     }
   ]
+
   route_profiles_for_redistribution = [
     {
       source       = "static"
@@ -268,9 +50,11 @@ module "l3out" {
       route_map_dn = aci_route_control_profile.profile2.id
     }
   ]
+
   multicast = {
     address_families = ["ipv4", "ipv6"]
   }
+
   route_map_control_profiles = [
     {
       name                       = "profile1"
@@ -326,12 +110,15 @@ module "l3out" {
       ]
     }
   ]
+
   default_leak_policy = {
     always   = "yes"
     criteria = "in-addition"
     scope    = ["ctx", "l3-out"]
   }
+
   fallback_route_group_dns = [aci_rest_managed.vrf_fallback_route_group1.id, aci_rest_managed.vrf_fallback_route_group2.id]
+
   external_epgs = [
     {
       name                        = "ext_epg1"
@@ -389,12 +176,6 @@ module "l3out" {
       preferred_group_member = false
       qos_class              = "level1"
       target_dscp            = "CS0"
-      contract_masters = [
-        {
-          external_epg = "ext_epg3"
-          l3out        = "module_l3out"
-        }
-      ]
       route_control_profiles = [
         {
           direction = "export"
@@ -411,6 +192,12 @@ module "l3out" {
       qos_class                   = "level3"
       target_dscp                 = "CS4"
       consumed_contract_interface = aci_imported_contract.imported_contract.id
+      contract_masters = [
+        {
+          external_epg = "ext_epg2"
+          l3out        = "module_l3out"
+        }
+      ]
       subnets = [
         {
           ip        = "21.1.1.0/24"
@@ -431,6 +218,7 @@ module "l3out" {
       ]
     }
   ]
+
   logical_node_profiles = [
     {
       name          = "node_profile1"
@@ -1319,8 +1107,4 @@ module "l3out" {
       ]
     }
   ]
-}
-
-output "test" {
-  value = module.l3out.debug
 }
