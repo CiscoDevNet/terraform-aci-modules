@@ -46,14 +46,16 @@ variable "route_control_for_dampening" {
       route_map_dn   = optional(string)
     }
   ))
+  default = []
   validation {
-    condition     = contains(["ipv4", "ipv6"], var.route_control_for_dampening[0].address_family)
+    condition     = length(var.route_control_for_dampening) != 0 ? contains(["ipv4", "ipv6"], var.route_control_for_dampening[0].address_family) : true
     error_message = "Valid values for route_control_for_dampening are (ipv4, ipv6)"
   }
 }
 
 variable "route_control_enforcement" {
   type = bool
+  default = false
 }
 
 variable "route_profiles_for_redistribution" {
@@ -63,6 +65,7 @@ variable "route_profiles_for_redistribution" {
       route_map_dn = optional(string)
     }
   ))
+  default = []
 }
 
 variable "multicast" {
@@ -72,6 +75,7 @@ variable "multicast" {
       address_families = optional(list(string))
     }
   )
+  default = {}
 }
 
 variable "default_leak_policy" {
@@ -81,6 +85,7 @@ variable "default_leak_policy" {
     scope    = optional(list(string))
     }
   )
+  default = {}
 }
 
 variable "fallback_route_group_dns" {
@@ -98,9 +103,33 @@ variable "target_dscp" {
   }
 }
 
+############## Variable for  "aci_l3out_ospf_external_policy" ########
+variable "ospf" {
+  type = object(
+    {
+    enabled   = bool
+    area_id   = optional(string)
+    area_type = optional(string)
+    area_cost = optional(string)
+    area_ctrl = optional(list(string))
+    multipod_internal = optional(string)
+   }
+  )
+  default = { 
+    enabled = false
+  }
+}
+
 ############## Variable for  "aci_l3out_bgp_external_policy" ######## 
-variable "external_bgp_name_alias" {
-  default = ""
+variable "bgp" {
+  type = object(
+    {
+  enabled = bool
+    }
+  )
+  default = { 
+    enabled = false 
+  }
 }
 
 ############## Variable for  "aci_external_epgs" ####################
@@ -149,16 +178,17 @@ variable "external_epgs" {
       )))
     }
   ))
+  default = []
   validation {
-    condition     = alltrue([for criteria in var.external_epgs : contains(["All", "AtleastOne", "AtmostOne", "None"], criteria["label_match_criteria"])])
+    condition     = alltrue([for criteria in var.external_epgs : (criteria["label_match_criteria"] != null) ? contains(["All", "AtleastOne", "AtmostOne", "None"], criteria["label_match_criteria"]) : true])
     error_message = "Valid values for label_match_criteria in external_epgs are (All, AtleastOne, AtmostOne, None)"
   }
   validation {
-    condition     = alltrue([for index, class in var.external_epgs : contains(["unspecified", "level6", "level5", "level4", "level3", "level2", "level1"], var.external_epgs[index].qos_class)])
+    condition     = alltrue([for index, class in var.external_epgs : (var.external_epgs[index].qos_class != null) ? contains(["unspecified", "level6", "level5", "level4", "level3", "level2", "level1"], var.external_epgs[index].qos_class) : true])
     error_message = "Valid values for qos_class in external_epgs are (unspecified, level6, level5, level4, level3, level2, level1)"
   }
   validation {
-    condition     = alltrue([for dscp in var.external_epgs : contains(["CS0", "CS1", "AF11", "AF12", "AF13", "CS2", "AF21", "AF22", "AF23", "CS3", "CS4", "CS5", "CS6", "CS7", "AF31", "AF32", "AF33", "AF41", "AF42", "AF43", "VA", "EF", "unspecified"], dscp["target_dscp"])])
+    condition     = alltrue([for dscp in var.external_epgs : (dscp["target_dscp"] != null) ? contains(["CS0", "CS1", "AF11", "AF12", "AF13", "CS2", "AF21", "AF22", "AF23", "CS3", "CS4", "CS5", "CS6", "CS7", "AF31", "AF32", "AF33", "AF41", "AF42", "AF43", "VA", "EF", "unspecified"], dscp["target_dscp"]) : true])
     error_message = "Valid values for target_dscp in external_epgs are (CS0, CS1, AF11, AF12, AF13, CS2, AF21, AF22, AF23, CS3, CS4, CS5, CS6, CS7, AF31, AF32, AF33, AF41, AF42, AF43, VA, EF, unspecified)"
   }
   validation {
@@ -213,6 +243,7 @@ variable "route_map_control_profiles" {
       )))
     }
   ))
+  default = []
   validation {
     condition     = alltrue([for control in var.route_map_control_profiles : contains(["global", "combinable"], control["route_control_profile_type"])])
     error_message = "Valid values for route_control_profile_type are (global, combinable)"
@@ -475,51 +506,10 @@ variable "logical_node_profiles" {
       )))
     }
   ))
+  default = []
   validation {
-    condition     = alltrue([for dscp in var.logical_node_profiles : contains(["CS0", "CS1", "AF11", "AF12", "AF13", "CS2", "AF21", "AF22", "AF23", "CS3", "CS4", "CS5", "CS6", "CS7", "AF31", "AF32", "AF33", "AF41", "AF42", "AF43", "VA", "EF", "unspecified"], dscp["target_dscp"])])
+    condition     = alltrue([for dscp in var.logical_node_profiles : (dscp["target_dscp"] != null) ? contains(["CS0", "CS1", "AF11", "AF12", "AF13", "CS2", "AF21", "AF22", "AF23", "CS3", "CS4", "CS5", "CS6", "CS7", "AF31", "AF32", "AF33", "AF41", "AF42", "AF43", "VA", "EF", "unspecified"], dscp["target_dscp"]) : true])
     error_message = "Valid values for target_dscp in logical_node_profiles are (CS0, CS1, AF11, AF12, AF13, CS2, AF21, AF22, AF23, CS3, CS4, CS5, CS6, CS7, AF31, AF32, AF33, AF41, AF42, AF43, VA, EF, unspecified)"
   }
-  validation {
-    condition = alltrue([for route_control in(flatten([
-      for node in var.logical_node_profiles : [
-        for static_routes in(node.nodes == null) ? [] : node.nodes : [
-          for route in(static_routes.static_routes == null) ? [] : static_routes.static_routes : [
-            (route.route_control == null) ? "unspecified" : route.route_control
-          ]
-        ]
-      ]
-    ])) : contains(["bfd", "unspecified"], route_control)])
-    error_message = "Valid values for route_control in static_routes of nodes in logical_node_profiles are (bfd, unspecified) but got: ${compact([for invalid_value in(flatten([
-      for node in var.logical_node_profiles : [
-        for static_routes in(node.nodes == null) ? [] : node.nodes : [
-          for route in(static_routes.static_routes == null) ? [] : static_routes.static_routes : [
-            !contains(["bfd", "unspecified"], (route.route_control == null) ? "unspecified" : route.route_control) ? route.route_control : ""
-          ]
-        ]
-      ]
-    ])) : invalid_value == "" ? 0 : invalid_value])[0]}"
-  }
-  # validation {
-  #   condition = alltrue([for path in (flatten([
-  #   for profile in var.logical_node_profiles : [
-  #     for interface in(profile.interfaces == null) ? [] : profile.interfaces : [
-  #       for path in(interface.paths == null) ? [] : interface.paths : [
-  #         path
-  #     ]
-  #   ]
-  # ]])): contains(["vpc", "dpc"], path.path_type) && contains([null,""],path.node2_id)])
-  #   error_message = "Value for node2_id is required when path_type is in (vpc, dpc)"
-  # }
 }
-
-output "vars" {
-  value = [for y in(flatten([
-    for node in var.logical_node_profiles : [
-      for static_routes in(node.nodes == null) ? [] : node.nodes : [
-        for route in(static_routes.static_routes == null) ? [] : static_routes.static_routes : {
-          x = !contains(["bfd", "unspecified"], (route.route_control == null) ? "unspecified" : route.route_control) ? route.route_control : null
-        }
-      ]
-    ]
-  ])) : y.x == null ? "k" : y.x][0]
-}
+  
