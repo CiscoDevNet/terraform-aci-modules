@@ -54,7 +54,7 @@ variable "route_control_for_dampening" {
 }
 
 variable "route_control_enforcement" {
-  type = bool
+  type    = bool
   default = false
 }
 
@@ -75,7 +75,7 @@ variable "multicast" {
       address_families = optional(list(string))
     }
   )
-  default = {}
+  default = null
 }
 
 variable "default_leak_policy" {
@@ -85,14 +85,18 @@ variable "default_leak_policy" {
     scope    = optional(list(string))
     }
   )
-  default = {}
+  default = null
+}
+
+variable "consumer_label" {
+  type    = string
+  default = ""
 }
 
 variable "fallback_route_group_dns" {
   type    = list(string)
   default = []
 }
-
 
 variable "target_dscp" {
   type    = string
@@ -107,15 +111,15 @@ variable "target_dscp" {
 variable "ospf" {
   type = object(
     {
-    enabled   = bool
-    area_id   = optional(string)
-    area_type = optional(string)
-    area_cost = optional(string)
-    area_ctrl = optional(list(string))
-    multipod_internal = optional(string)
-   }
+      enabled           = bool
+      area_id           = optional(string)
+      area_type         = optional(string)
+      area_cost         = optional(string)
+      area_ctrl         = optional(list(string))
+      multipod_internal = optional(string)
+    }
   )
-  default = { 
+  default = {
     enabled = false
   }
 }
@@ -124,11 +128,11 @@ variable "ospf" {
 variable "bgp" {
   type = object(
     {
-  enabled = bool
+      enabled = bool
     }
   )
-  default = { 
-    enabled = false 
+  default = {
+    enabled = false
   }
 }
 
@@ -198,7 +202,7 @@ variable "external_epgs" {
           subnet.aggregate
         ]
       ]
-    ])) : contains(["import-rtctrl", "export-rtctrl", "shared-rtctrl", "none"], aggregate)])
+    ])) : (aggregate != null) ? contains(["import-rtctrl", "export-rtctrl", "shared-rtctrl", "none"], aggregate) : true])
     error_message = "Valid values for aggregate in subnets of external_epgs are (import-rtctrl, export-rtctrl, shared-rtctrl, none)"
   }
   validation {
@@ -208,7 +212,7 @@ variable "external_epgs" {
           subnet.scope
         ]
       ]
-    ])) : contains(["import-rtctrl", "export-rtctrl", "shared-rtctrl", "none"], scope)])
+    ])) : (scope != null) ? contains(["import-rtctrl", "export-rtctrl", "shared-rtctrl", "import-security", "shared-security", "none"], scope) : true])
     error_message = "Valid values for scope in subnets of external_epgs are (import-rtctrl, export-rtctrl, shared-rtctrl, import-security, shared-security)"
   }
   validation {
@@ -218,7 +222,7 @@ variable "external_epgs" {
           profile.direction
         ]
       ]
-    ])) : contains(["export", "import"], direction)])
+    ])) : (direction != null) ? contains(["export", "import"], direction) : true])
     error_message = "Valid values for direction in route_control_profiles of external_epgs are (export, import)"
   }
 }
@@ -245,7 +249,7 @@ variable "route_map_control_profiles" {
   ))
   default = []
   validation {
-    condition     = alltrue([for control in var.route_map_control_profiles : contains(["global", "combinable"], control["route_control_profile_type"])])
+    condition     = alltrue([for control in var.route_map_control_profiles : (control["route_control_profile_type"] != null) ? contains(["global", "combinable"], control["route_control_profile_type"]) : true])
     error_message = "Valid values for route_control_profile_type are (global, combinable)"
   }
 }
@@ -512,4 +516,3 @@ variable "logical_node_profiles" {
     error_message = "Valid values for target_dscp in logical_node_profiles are (CS0, CS1, AF11, AF12, AF13, CS2, AF21, AF22, AF23, CS3, CS4, CS5, CS6, CS7, AF31, AF32, AF33, AF41, AF42, AF43, VA, EF, unspecified)"
   }
 }
-  

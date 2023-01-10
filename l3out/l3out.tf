@@ -304,10 +304,23 @@ resource "aci_l3_outside" "l3out" {
   }
 }
 
+resource "aci_l3out_ospf_external_policy" "ospf" {
+  count = var.ospf.enabled ? 1 : 0
+
+  l3_outside_dn     = aci_l3_outside.l3out.id
+  area_id           = var.ospf.area_id
+  area_type         = var.ospf.area_type
+  area_cost         = var.ospf.area_cost
+  multipod_internal = var.ospf.multipod_internal
+  annotation        = var.annotation
+  area_ctrl         = var.ospf.area_ctrl
+}
+
 resource "aci_l3out_bgp_external_policy" "external_bgp" {
+  count = var.bgp.enabled ? 1 : 0
+
   l3_outside_dn = aci_l3_outside.l3out.id
   annotation    = var.annotation
-  name_alias    = var.external_bgp_name_alias
 }
 
 resource "aci_external_network_instance_profile" "l3out_external_epgs" {
@@ -360,12 +373,14 @@ resource "aci_rest_managed" "l3out_route_profiles_for_redistribution" {
 }
 
 resource "aci_rest_managed" "l3out_default_leak_policy" {
+  count = var.default_leak_policy != null ? 1 : 0
+
   dn         = "${aci_l3_outside.l3out.id}/defrtleak"
   class_name = "l3extDefaultRouteLeakP"
   content = {
     always   = var.default_leak_policy.always
     criteria = var.default_leak_policy.criteria
-    scope    = join(",", var.default_leak_policy.scope)
+    scope    = var.default_leak_policy.scope != null ? join(",", var.default_leak_policy.scope) : null
   }
 }
 
@@ -380,18 +395,22 @@ resource "aci_rest_managed" "l3out_fallback_route_group" {
 }
 
 resource "aci_rest_managed" "l3out_multicast" {
+  count = var.multicast != null ? 1 : 0
+
   dn         = "${aci_l3_outside.l3out.id}/pimextp"
   class_name = "pimExtP"
   content = {
-    enabledAf = join(",", formatlist("%s-mcast", var.multicast.address_families))
+    enabledAf = var.multicast.address_families != null ? join(",", formatlist("%s-mcast", var.multicast.address_families)) : null
   }
 }
 
 resource "aci_rest_managed" "l3out_consumer_label" {
-  dn         = "${aci_l3_outside.l3out.id}/conslbl-hcloudGolfLabel"
+  count = var.consumer_label != "" ? 1 : 0
+
+  dn         = "${aci_l3_outside.l3out.id}/conslbl-${var.consumer_label}"
   class_name = "l3extConsLbl"
   content = {
-    name = "hcloudGolfLabel"
+    name = var.consumer_label
   }
 }
 
@@ -782,6 +801,6 @@ resource "aci_bgp_peer_connectivity_profile" "interface_bgp_peer" {
   }
 }
 
-output "debug" {
-  value = local.external_epg_subnets
+output "l3out_dn" {
+  value = aci_l3_outside.l3out.id
 }

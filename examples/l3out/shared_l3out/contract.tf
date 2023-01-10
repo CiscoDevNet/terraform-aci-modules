@@ -1,22 +1,23 @@
-resource "aci_contract" "contract" {
-  tenant_dn = aci_tenant.tenant.id
-  name      = "For_Internet"
+resource "aci_contract" "contract1" {
+  tenant_dn = "uni/tn-common"
+  name      = "contract1"
+  scope     = "global"
 }
 
-resource "aci_contract_subject" "contract_subject" {
-  contract_dn   = aci_contract.contract.id
-  name          = "contract_subject"
+resource "aci_contract_subject" "contract_subject1" {
+  contract_dn   = aci_contract.contract1.id
+  name          = "contract_subject1"
   rev_flt_ports = "no"
 }
 
-resource "aci_filter" "filter" {
-  tenant_dn   = aci_tenant.tenant.id
+resource "aci_filter" "filter1" {
+  tenant_dn   = "uni/tn-common"
   name        = "filter1"
   description = "This filter is created by terraform ACI provider."
 }
 
-resource "aci_filter_entry" "demoentry" {
-  filter_dn     = aci_filter.filter.id
+resource "aci_filter_entry" "entry1" {
+  filter_dn     = aci_filter.filter1.id
   name          = "entry1"
   description   = "This entry is created by terraform ACI provider"
   apply_to_frag = "no"
@@ -34,10 +35,10 @@ resource "aci_filter_entry" "demoentry" {
   tcp_rules     = ["ack"]
 }
 
-resource "aci_contract_subject_filter" "contract_subject_filter" {
-  contract_subject_dn = aci_contract_subject.contract_subject.id
+resource "aci_contract_subject_filter" "contract_subject_filter1" {
+  contract_subject_dn = aci_contract_subject.contract_subject1.id
   action              = "permit"
   directives          = ["log"]
   priority_override   = "default"
-  filter_dn           = aci_filter.filter.id
+  filter_dn           = aci_filter.filter1.id
 }

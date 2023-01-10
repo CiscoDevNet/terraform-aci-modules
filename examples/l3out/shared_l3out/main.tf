@@ -13,30 +13,26 @@ provider "aci" {
   insecure = true
 }
 
+resource "aci_l3_domain_profile" "profile" {
+  name = "l3_WAN"
+}
+
 module "l3out" {
   source                    = "../l3out"
-  tenant_dn                 = aci_tenant.tenant.id
-  name                      = "External_network"
+  tenant_dn                 = "uni/tn-common"
+  name                      = "WAN"
   alias                     = "l3out"
   description               = "Created by l3out module"
   route_control_enforcement = true
-  vrf_dn                    = aci_vrf.vrf.id
+  vrf_dn                    = "uni/tn-common/ctx-default"
   l3_domain_dn              = aci_l3_domain_profile.profile.id
-
-  ospf = {
-    enabled   = true
-    area_cost = "1"
-    area_ctrl = ["redistribute", "summary"]
-    area_id   = "0"
-    area_type = "regular"
-  }
 
   logical_node_profiles = [
     {
-      name = "node1"
+      name = "Node"
       nodes = [
         {
-          node_id   = "101"
+          node_id   = "102"
           pod_id    = "1"
           router_id = "101.101.101.101"
           static_routes = [
@@ -54,14 +50,15 @@ module "l3out" {
 
       interfaces = [
         {
-          name = "interface1"
+          name = "Leaf102-Int"
           paths = [
             {
-              interface_type = "l3-port"
+              interface_type = "sub-interface"
               pod_id         = "1"
-              node_id        = "101"
+              node_id        = "102"
               interface_id   = "eth1/15"
               path_type      = "port"
+              encap          = "vlan-10"
               ip_address     = "221.221.221.2/30"
             }
           ]
@@ -72,12 +69,12 @@ module "l3out" {
 
   external_epgs = [
     {
-      name              = "all_prefixes"
-      provided_contract = aci_contract.contract.id
+      name              = "WAN-Ext"
+      provided_contract = aci_contract.contract1.id
       subnets = [
         {
           ip    = "0.0.0.0/0"
-          scope = ["import-security"]
+          scope = ["shared-rtctrl", "import-security", "shared-security"]
         }
       ]
     }
