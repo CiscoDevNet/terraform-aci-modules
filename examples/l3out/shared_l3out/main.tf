@@ -13,18 +13,27 @@ provider "aci" {
   insecure = true
 }
 
+data "aci_tenant" "common" {
+  name  = "common"
+}
+
+data "aci_vrf" "default" {
+  tenant_dn  = data.aci_tenant.common.id
+  name       = "default"
+}
+
 resource "aci_l3_domain_profile" "profile" {
   name = "l3_WAN"
 }
 
 module "l3out" {
   source                    = "../l3out"
-  tenant_dn                 = "uni/tn-common"
+  tenant_dn                 = data.aci_tenant.common.id
   name                      = "WAN"
   alias                     = "l3out"
   description               = "Created by l3out module"
   route_control_enforcement = true
-  vrf_dn                    = "uni/tn-common/ctx-default"
+  vrf_dn                    = data.aci_vrf.default.id
   l3_domain_dn              = aci_l3_domain_profile.profile.id
 
   logical_node_profiles = [

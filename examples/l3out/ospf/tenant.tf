@@ -38,3 +38,17 @@ resource "aci_vrf" "vrf" {
 resource "aci_l3_domain_profile" "profile" {
   name = "l3_domain"
 }
+
+resource "aci_ospf_interface_policy" "ospf_interface_policy" {
+  tenant_dn    = aci_tenant.tenant.id
+  name         = "demo_ospfpol"
+  cost         = "unspecified"
+  ctrl         = ["mtu-ignore"]
+  dead_intvl   = "40"
+  hello_intvl  = "10"
+  nw_t         = "p2p"
+  pfx_suppress = "inherit"
+  prio         = "1"
+  rexmit_intvl = "5"
+  xmit_delay   = "1"
+}

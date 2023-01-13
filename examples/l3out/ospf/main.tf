@@ -55,6 +55,9 @@ module "l3out" {
       interfaces = [
         {
           name = "interface1"
+          ospf_interface_profile = {
+            ospf_interface_policy = aci_ospf_interface_policy.ospf_interface_policy.id
+          }
           paths = [
             {
               interface_type = "l3-port"
