@@ -19,14 +19,14 @@ module "l3out" {
   name                           = "module_l3out"
   alias                          = "l3out"
   description                    = "Created by l3out module"
-  route_control_enforcement      = true
+  import_route_control      = true
   target_dscp                    = "EF"
   vrf_dn                         = aci_vrf.vrf.id
   l3_domain_dn                   = aci_l3_domain_profile.profile.id
   route_profile_for_interleak_dn = aci_route_control_profile.profile.id
 
   bgp = {
-    enabled = true
+    alias = "bgp"
   }
 
   route_control_for_dampening = [
@@ -111,7 +111,7 @@ module "l3out" {
     }
   ]
 
-  default_leak_policy = {
+  default_route_leak_policy = {
     always   = "yes"
     criteria = "in-addition"
     scope    = ["ctx", "l3-out"]
@@ -123,15 +123,14 @@ module "l3out" {
     {
       name                        = "ext_epg1"
       description                 = "l3out_ext_epg1"
-      flood_on_encap              = "enabled"
       label_match_criteria        = "All"
       preferred_group_member      = true
       qos_class                   = "level4"
       target_dscp                 = "VA"
-      consumed_contract_interface = aci_imported_contract.imported_contract.id
-      provided_contract           = aci_contract.rs_prov_contract.id
-      consumed_contract           = aci_contract.rs_cons_contract.id
-      taboo_contract              = aci_taboo_contract.taboo_contract.id
+      consumed_contract_interfaces = [aci_imported_contract.imported_contract.id]
+      provided_contracts           = [aci_contract.rs_prov_contract.id]
+      consumed_contracts           = [aci_contract.rs_cons_contract.id]
+      taboo_contracts              = [aci_taboo_contract.taboo_contract.id]
       contract_masters = [
         {
           external_epg = "ext_epg2"
@@ -171,7 +170,6 @@ module "l3out" {
     {
       name                   = "ext_epg2"
       description            = "l3out_ext_epg2"
-      flood_on_encap         = "enabled"
       label_match_criteria   = "All"
       preferred_group_member = false
       qos_class              = "level1"
@@ -186,7 +184,6 @@ module "l3out" {
     {
       name                        = "ext_epg3"
       description                 = "l3out_ext_epg3"
-      flood_on_encap              = "disabled"
       label_match_criteria        = "All"
       preferred_group_member      = true
       qos_class                   = "level3"
@@ -241,9 +238,8 @@ module "l3out" {
           static_routes = [
             {
               ip                  = "11.0.0.3/12"
-              aggregate           = "no"
               fallback_preference = "1"
-              route_control       = "bfd"
+              route_control       = true
               next_hop_addresses = [
                 {
                   next_hop_ip          = "172.16.31.9"
@@ -257,9 +253,8 @@ module "l3out" {
             },
             {
               ip                  = "12.0.0.2/12"
-              aggregate           = "yes"
               fallback_preference = "3"
-              route_control       = "unspecified"
+              route_control       = false
               next_hop_addresses = [
                 {
                   next_hop_ip          = "172.16.31.9"
@@ -302,8 +297,10 @@ module "l3out" {
                 {
                   ip_address         = "10.1.1.2"
                   address_control    = ["af-mcast", "af-ucast"]
-                  allowed_self_as    = "1"
-                  bgp_controls       = ["allow-self-as"]
+                  allowed_self_as_cnt    = "1"
+                  bgp_controls       = {
+                    as_override = true
+                  }
                   peer_controls      = ["bfd"]
                   private_as_control = ["remove-all", "remove-exclusive"]
                   admin_state        = "enabled"
@@ -311,8 +308,7 @@ module "l3out" {
                 {
                   ip_address         = "10.1.1.49"
                   address_control    = ["af-mcast", "af-ucast"]
-                  allowed_self_as    = "1"
-                  bgp_controls       = ["allow-self-as"]
+                  allowed_self_as_cnt    = "1"
                   peer_controls      = ["bfd"]
                   private_as_control = ["remove-all", "remove-exclusive"]
                   admin_state        = "disabled"
@@ -432,11 +428,11 @@ module "l3out" {
               target_dscp = "EF"
               path_attributes = [
                 {
-                  target_dn           = aci_physical_domain.physical_domain.id
+                  domain_dn           = aci_physical_domain.physical_domain.id
                   floating_address    = "10.23.2.1/12"
-                  forged_transmit     = "Disabled"
-                  mac_change          = "Disabled"
-                  promiscuous_mode    = "Disabled"
+                  forged_transmit     = false
+                  mac_change          = false
+                  promiscuous_mode    = false
                   secondary_addresses = ["10.34.23.1/12", "10.34.23.2/12", "10.34.23.3/12"]
                 }
               ]
@@ -444,8 +440,10 @@ module "l3out" {
                 {
                   ip_address         = "10.1.1.26"
                   address_control    = ["af-mcast", "af-ucast"]
-                  allowed_self_as    = "1"
-                  bgp_controls       = ["allow-self-as"]
+                  allowed_self_as_cnt    = "1"
+                  bgp_controls       = {
+                    allow_self_as = true
+                  }
                   peer_controls      = ["bfd"]
                   private_as_control = ["remove-all", "remove-exclusive"]
                   admin_state        = "disabled"
@@ -460,8 +458,10 @@ module "l3out" {
                 {
                   ip_address         = "10.1.1.4"
                   address_control    = ["af-mcast", "af-ucast"]
-                  allowed_self_as    = "1"
-                  bgp_controls       = ["allow-self-as"]
+                  allowed_self_as_cnt    = "1"
+                  bgp_controls       = {
+                    send_com = true
+                  }
                   peer_controls      = ["bfd"]
                   private_as_control = ["remove-all", "remove-exclusive"]
                   admin_state        = "enabled"
@@ -487,11 +487,11 @@ module "l3out" {
               target_dscp = "EF"
               path_attributes = [
                 {
-                  target_dn           = aci_physical_domain.physical_domain.id
+                  domain_dn           = aci_physical_domain.physical_domain.id
                   floating_address    = "10.23.2.2/12"
-                  forged_transmit     = "Disabled"
-                  mac_change          = "Disabled"
-                  promiscuous_mode    = "Disabled"
+                  forged_transmit     = false
+                  mac_change          = false
+                  promiscuous_mode    = false
                   secondary_addresses = ["10.34.23.1/12", "10.34.23.2/12", "10.34.23.3/12"]
                 }
               ]
@@ -499,8 +499,10 @@ module "l3out" {
                 {
                   ip_address         = "10.1.1.23"
                   address_control    = ["af-mcast", "af-ucast"]
-                  allowed_self_as    = "1"
-                  bgp_controls       = ["allow-self-as"]
+                  allowed_self_as_cnt    = "1"
+                  bgp_controls       = {
+                    send_ext_com = true
+                  }
                   peer_controls      = ["bfd"]
                   private_as_control = ["remove-all", "remove-exclusive"]
                   admin_state        = "disabled"
@@ -612,8 +614,11 @@ module "l3out" {
         {
           ip_address         = "10.1.1.20"
           address_control    = ["af-mcast", "af-ucast"]
-          allowed_self_as    = "1"
-          bgp_controls       = ["allow-self-as"]
+          allowed_self_as_cnt    = "1"
+          bgp_controls       = {
+            allow_self_as = true
+            nh_self = true
+        }
           peer_controls      = ["bfd"]
           private_as_control = ["remove-all", "remove-exclusive"]
           admin_state        = "disabled"
@@ -627,8 +632,10 @@ module "l3out" {
         {
           ip_address         = "10.1.1.45"
           address_control    = ["af-mcast", "af-ucast"]
-          allowed_self_as    = "1"
-          bgp_controls       = ["allow-self-as"]
+          allowed_self_as_cnt    = "1"
+          bgp_controls       = {
+            dis_peer_as_check = true
+          }
           peer_controls      = ["bfd"]
           private_as_control = ["remove-all", "remove-exclusive"]
           admin_state        = "enabled"
@@ -689,8 +696,7 @@ module "l3out" {
         {
           ip_address         = "10.1.1.234"
           address_control    = ["af-mcast", "af-ucast"]
-          allowed_self_as    = "1"
-          bgp_controls       = ["allow-self-as"]
+          allowed_self_as_cnt    = "1"
           peer_controls      = ["bfd"]
           private_as_control = ["remove-all", "remove-exclusive"]
           admin_state        = "enabled"
@@ -720,9 +726,8 @@ module "l3out" {
           static_routes = [
             {
               ip                  = "10.0.0.3/12"
-              aggregate           = "no"
               fallback_preference = "1"
-              route_control       = "bfd"
+              route_control       = true
               next_hop_addresses = [
                 {
                   next_hop_ip          = "172.16.31.10"
@@ -736,9 +741,8 @@ module "l3out" {
             },
             {
               ip                  = "10.0.0.2/12"
-              aggregate           = "yes"
               fallback_preference = "2"
-              route_control       = "unspecified"
+              route_control       = false
               next_hop_addresses = [
                 {
                   next_hop_ip          = "172.16.31.9"
@@ -761,13 +765,11 @@ module "l3out" {
           static_routes = [
             {
               ip                  = "10.0.0.6/12"
-              aggregate           = "no"
               fallback_preference = "1"
-              route_control       = "bfd"
+              route_control       = true
             },
             {
               ip                  = "10.0.0.7/12"
-              aggregate           = "yes"
               fallback_preference = "2"
               next_hop_addresses = [
                 {
@@ -917,8 +919,11 @@ module "l3out" {
                 {
                   ip_address         = "10.1.1.20"
                   address_control    = ["af-mcast", "af-ucast"]
-                  allowed_self_as    = "1"
-                  bgp_controls       = ["allow-self-as"]
+                  allowed_self_as_cnt    = "1"
+                  bgp_controls       = {
+                    allow_self_as = true
+                    dis_peer_as_check = true
+                  }
                   peer_controls      = ["bfd"]
                   private_as_control = ["remove-all", "remove-exclusive"]
                   admin_state        = "disabled"
@@ -932,8 +937,12 @@ module "l3out" {
                 {
                   ip_address         = "10.1.1.45"
                   address_control    = ["af-mcast", "af-ucast"]
-                  allowed_self_as    = "1"
-                  bgp_controls       = ["allow-self-as"]
+                  allowed_self_as_cnt    = "1"
+                  bgp_controls       = {
+                    allow_self_as = true
+                    dis_peer_as_check = true
+                    nh_self = true
+                  }
                   peer_controls      = ["bfd"]
                   private_as_control = ["remove-all", "remove-exclusive"]
                   admin_state        = "enabled"
@@ -973,8 +982,10 @@ module "l3out" {
                 {
                   ip_address         = "10.1.1.25"
                   address_control    = ["af-mcast", "af-ucast"]
-                  allowed_self_as    = "1"
-                  bgp_controls       = ["allow-self-as"]
+                  allowed_self_as_cnt    = "1"
+                  bgp_controls       = {
+                    send_com = true
+                  }
                   peer_controls      = ["bfd"]
                   private_as_control = ["remove-all", "remove-exclusive"]
                   admin_state        = "enabled"
@@ -1038,12 +1049,12 @@ module "l3out" {
               target_dscp = "EF"
               path_attributes = [
                 {
-                  target_dn           = aci_physical_domain.physical_domain.id
+                  domain_dn           = aci_physical_domain.physical_domain.id
                   vlan                = "vlan-3"
                   floating_address    = "10.23.2.5/12"
-                  forged_transmit     = "Disabled"
-                  mac_change          = "Disabled"
-                  promiscuous_mode    = "Disabled"
+                  forged_transmit     = false
+                  mac_change          = false
+                  promiscuous_mode    = false
                   secondary_addresses = ["10.34.23.1/12", "10.34.23.2/12", "10.34.23.3/12"]
                 }
               ]
@@ -1051,8 +1062,7 @@ module "l3out" {
                 {
                   ip_address         = "10.1.1.21"
                   address_control    = ["af-mcast", "af-ucast"]
-                  allowed_self_as    = "1"
-                  bgp_controls       = ["allow-self-as"]
+                  allowed_self_as_cnt    = "1"
                   peer_controls      = ["bfd"]
                   private_as_control = ["remove-all", "remove-exclusive"]
                   admin_state        = "disabled"
@@ -1066,8 +1076,10 @@ module "l3out" {
                 {
                   ip_address         = "10.1.1.42"
                   address_control    = ["af-mcast", "af-ucast"]
-                  allowed_self_as    = "1"
-                  bgp_controls       = ["allow-self-as"]
+                  allowed_self_as_cnt    = "1"
+                  bgp_controls       = {
+                    as_override = true
+                  }
                   peer_controls      = ["bfd"]
                   private_as_control = ["remove-all", "remove-exclusive"]
                   admin_state        = "enabled"
@@ -1093,11 +1105,11 @@ module "l3out" {
               target_dscp = "EF"
               path_attributes = [
                 {
-                  target_dn           = aci_physical_domain.physical_domain.id
+                  domain_dn           = aci_physical_domain.physical_domain.id
                   floating_address    = "10.23.2.8/12"
-                  forged_transmit     = "Disabled"
-                  mac_change          = "Disabled"
-                  promiscuous_mode    = "Disabled"
+                  forged_transmit     = false
+                  mac_change          = false
+                  promiscuous_mode    = false
                   secondary_addresses = ["10.34.23.1/12", "10.34.23.2/12", "10.34.23.3/12"]
                 }
               ]

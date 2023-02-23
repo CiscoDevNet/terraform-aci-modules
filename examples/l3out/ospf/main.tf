@@ -19,12 +19,11 @@ module "l3out" {
   name                      = "External_network"
   alias                     = "l3out"
   description               = "Created by l3out module"
-  route_control_enforcement = true
+  import_route_control = true
   vrf_dn                    = aci_vrf.vrf.id
   l3_domain_dn              = aci_l3_domain_profile.profile.id
 
   ospf = {
-    enabled   = true
     area_cost = "1"
     area_ctrl = ["redistribute", "summary"]
     area_id   = "0"
@@ -33,7 +32,7 @@ module "l3out" {
 
   logical_node_profiles = [
     {
-      name = "node1"
+      name = ["node1","node2"]
       nodes = [
         {
           node_id   = "101"
@@ -57,6 +56,7 @@ module "l3out" {
           name = "interface1"
           ospf_interface_profile = {
             ospf_interface_policy = aci_ospf_interface_policy.ospf_interface_policy.id
+            authentication_key = "1"
           }
           paths = [
             {

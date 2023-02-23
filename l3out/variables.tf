@@ -34,6 +34,7 @@ variable "l3_domain_dn" {
   default = ""
 }
 
+//remove this
 variable "route_profile_for_interleak_dn" {
   type    = string
   default = ""
@@ -53,11 +54,12 @@ variable "route_control_for_dampening" {
   }
 }
 
-variable "route_control_enforcement" {
+variable "import_route_control" {
   type    = bool
   default = false
 }
 
+// "route_profile_for_interleak_dn"
 variable "route_profiles_for_redistribution" {
   type = list(object(
     {
@@ -78,7 +80,7 @@ variable "multicast" {
   default = null
 }
 
-variable "default_leak_policy" {
+variable "default_route_leak_policy" {
   type = object({
     criteria = optional(string)
     always   = optional(string)
@@ -111,29 +113,24 @@ variable "target_dscp" {
 variable "ospf" {
   type = object(
     {
-      enabled           = bool
       area_id           = optional(string)
       area_type         = optional(string)
       area_cost         = optional(string)
       area_ctrl         = optional(list(string))
-      multipod_internal = optional(string)
     }
   )
-  default = {
-    enabled = false
-  }
+  default = null
 }
 
 ############## Variable for  "aci_l3out_bgp_external_policy" ######## 
 variable "bgp" {
   type = object(
     {
-      enabled = bool
+    annotation = optional(string)
+    alias = optional(string)
     }
   )
-  default = {
-    enabled = false
-  }
+  default = null
 }
 
 ############## Variable for  "aci_external_epgs" ####################
@@ -143,17 +140,16 @@ variable "external_epgs" {
       annotation                  = optional(string)
       description                 = optional(string)
       exception_tag               = optional(string)
-      flood_on_encapsulation      = optional(string)
       label_match_criteria        = optional(string)
       alias                       = optional(string)
       name                        = string
       preferred_group_member      = optional(bool)
       qos_class                   = optional(string)
       target_dscp                 = optional(string)
-      provided_contract           = optional(string)
-      consumed_contract_interface = optional(string)
-      consumed_contract           = optional(string)
-      taboo_contract              = optional(string)
+      provided_contracts           = optional(list(string))
+      consumed_contract_interfaces = optional(list(string))
+      consumed_contracts           = optional(list(string))
+      taboo_contracts              = optional(list(string))
       contract_masters = optional(list(object(
         {
           external_epg = string
@@ -256,7 +252,7 @@ variable "route_map_control_profiles" {
 
 ############## Variable for  "aci_logical_node_profile" ####################
 variable "logical_node_profiles" {
-  type = list(object(
+  type = optional(list(object(
     {
       annotation  = optional(string)
       description = optional(string)
@@ -267,9 +263,17 @@ variable "logical_node_profiles" {
       bgp_peers_nodes = optional(list(object({
         ip_address             = string
         address_control        = optional(list(string))
-        allowed_self_as        = optional(string)
+        allowed_self_as_cnt        = optional(string)
         annotation             = optional(string)
-        bgp_controls           = optional(list(string))
+        bgp_controls           = optional(object(
+          {
+          allow_self_as = optional(bool)
+          as_override = optional(bool)
+					dis_peer_as_check= optional(bool)
+						nh_self=optional(bool)
+						send_com=optional(bool)
+						send_ext_com=optional(bool)
+        }))
         alias                  = optional(string)
         password               = optional(string)
         peer_controls          = optional(list(string))
@@ -310,11 +314,10 @@ variable "logical_node_profiles" {
           loopback_address   = optional(string)
           static_routes = optional(list(object({
             ip                  = string
-            aggregate           = optional(string)
             alias               = optional(string)
             description         = optional(string)
             fallback_preference = optional(string)
-            route_control       = optional(string)
+            route_control       = optional(bool)
             track_policy        = optional(string)
             next_hop_addresses = optional(list(object({
               next_hop_ip          = string
@@ -334,6 +337,16 @@ variable "logical_node_profiles" {
       interfaces = optional(list(object(
         {
           name = string
+          ospf_interface_profile = optional(object(
+            {
+              authentication_key                 = optional(string)
+              authentication_key_id              = optional(string)
+              authentication_type                = optional(string)
+              ospf_interface_policy              = optional(string)
+              description            = optional(string)
+              annotation             = optional(string)
+            }
+          ))
           bfd_interface_profile = optional(object(
             {
               authentication_key     = optional(string)
@@ -381,7 +394,6 @@ variable "logical_node_profiles" {
           egress_data_policy_dn   = optional(string)
           ingress_data_policy_dn  = optional(string)
           custom_qos_policy_dn    = optional(string)
-          arp_interface_policy_dn = optional(string)
           nd_policy_dn            = optional(string)
           paths = optional(list(object(
             {
@@ -405,9 +417,18 @@ variable "logical_node_profiles" {
               bgp_peers = optional(list(object({
                 ip_address             = string
                 address_control        = optional(list(string))
-                allowed_self_as        = optional(string)
+                allowed_self_as_cnt        = optional(string)
                 annotation             = optional(string)
-                bgp_controls           = optional(list(string))
+                bgp_controls           = optional(object(
+                {
+                  allow_self_as = optional(bool)
+                  as_override = optional(bool)
+                  dis_peer_as_check= optional(bool)
+                  nh_self=optional(bool)
+                  send_com=optional(bool)
+                    send_ext_com=optional(bool)
+                }
+                ))
                 alias                  = optional(string)
                 password               = optional(string)
                 peer_controls          = optional(list(string))
@@ -472,11 +493,11 @@ variable "logical_node_profiles" {
               target_dscp     = optional(string)
               path_attributes = optional(list(object(
                 {
-                  target_dn           = string
+                  domain_dn           = string
                   floating_address    = string
-                  forged_transmit     = optional(string)
-                  mac_change          = optional(string)
-                  promiscuous_mode    = optional(string)
+                  forged_transmit     = optional(bool)
+                  mac_change          = optional(bool)
+                  promiscuous_mode    = optional(bool)
                   secondary_addresses = optional(list(string))
                 }
               )))
@@ -484,9 +505,18 @@ variable "logical_node_profiles" {
                 {
                   ip_address             = string
                   address_control        = optional(list(string))
-                  allowed_self_as        = optional(string)
+                  allowed_self_as_cnt        = optional(string)
                   annotation             = optional(string)
-                  bgp_controls           = optional(list(string))
+                  bgp_controls           = optional(object(
+                    {
+          allow_self_as = optional(bool)
+          as_override = optional(bool)
+					dis_peer_as_check= optional(bool)
+						nh_self=optional(bool)
+						send_com=optional(bool)
+						send_ext_com=optional(bool)
+        }
+        ))
                   alias                  = optional(string)
                   password               = optional(string)
                   peer_controls          = optional(list(string))
@@ -509,7 +539,7 @@ variable "logical_node_profiles" {
         }
       )))
     }
-  ))
+  )))
   default = []
   validation {
     condition     = alltrue([for dscp in var.logical_node_profiles : (dscp["target_dscp"] != null) ? contains(["CS0", "CS1", "AF11", "AF12", "AF13", "CS2", "AF21", "AF22", "AF23", "CS3", "CS4", "CS5", "CS6", "CS7", "AF31", "AF32", "AF33", "AF41", "AF42", "AF43", "VA", "EF", "unspecified"], dscp["target_dscp"]) : true])

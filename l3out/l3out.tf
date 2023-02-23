@@ -4,7 +4,7 @@ resource "aci_l3_outside" "l3out" {
   name_alias                      = var.alias
   description                     = var.description
   annotation                      = var.annotation
-  enforce_rtctrl                  = var.route_control_enforcement == true ? ["export", "import"] : ["export"]
+  enforce_rtctrl                  = var.import_route_control == true ? ["export", "import"] : ["export"]
   target_dscp                     = var.target_dscp
   relation_l3ext_rs_ectx          = var.vrf_dn
   relation_l3ext_rs_l3_dom_att    = var.l3_domain_dn
@@ -20,22 +20,22 @@ resource "aci_l3_outside" "l3out" {
 }
 
 resource "aci_l3out_ospf_external_policy" "ospf" {
-  count = var.ospf.enabled ? 1 : 0
+  count = (var.ospf != null) ? 1 : 0
 
   l3_outside_dn     = aci_l3_outside.l3out.id
   area_id           = var.ospf.area_id
   area_type         = var.ospf.area_type
   area_cost         = var.ospf.area_cost
-  multipod_internal = var.ospf.multipod_internal
   annotation        = var.annotation
   area_ctrl         = var.ospf.area_ctrl
 }
 
 resource "aci_l3out_bgp_external_policy" "external_bgp" {
-  count = var.bgp.enabled ? 1 : 0
+  count = (var.bgp != null) ? 1 : 0
 
   l3_outside_dn = aci_l3_outside.l3out.id
   annotation    = var.annotation
+  name_alias = var.bgp.alias
 }
 
 resource "aci_external_network_instance_profile" "l3out_external_epgs" {
@@ -45,17 +45,18 @@ resource "aci_external_network_instance_profile" "l3out_external_epgs" {
   annotation             = each.value.annotation
   description            = each.value.description
   exception_tag          = each.value.exception_tag
-  flood_on_encap         = each.value.flood_on_encapsulation
   match_t                = each.value.label_match_criteria
   name_alias             = each.value.alias
   name                   = each.value.name
   pref_gr_memb           = each.value.preferred_group_member == true ? "include" : "exclude"
   prio                   = each.value.qos_class
   target_dscp            = each.value.target_dscp
-  relation_fv_rs_prov    = each.value.provided_contract != null ? [each.value.provided_contract] : []
-  relation_fv_rs_cons_if = each.value.consumed_contract_interface != null ? [each.value.consumed_contract_interface] : []
-  relation_fv_rs_cons    = each.value.consumed_contract != null ? [each.value.consumed_contract] : []
-  relation_fv_rs_prot_by = each.value.taboo_contract != null ? [each.value.taboo_contract] : []
+  relation_fv_rs_prov    = each.value.provided_contracts != null ? each.value.provided_contracts : []
+  relation_fv_rs_cons_if = each.value.consumed_contract_interfaces != null ? each.value.consumed_contract_interfaces : []
+  relation_fv_rs_cons    = each.value.consumed_contracts != null ? each.value.consumed_contracts : []
+  relation_fv_rs_prot_by = each.value.taboo_contracts != null ? each.value.taboo_contracts : []
+
+  # contains(keys(local.route_control_context_match_rules_dn), each.value.context.name) ? local.route_control_context_match_rules_dn[each.value.context.name] : []
 
   dynamic "relation_l3ext_rs_inst_p_to_profile" {
     for_each = contains(keys(local.external_epg_route_control_profiles), each.value.name) ? local.external_epg_route_control_profiles[each.value.name] : []
@@ -87,15 +88,15 @@ resource "aci_rest_managed" "l3out_route_profiles_for_redistribution" {
   }
 }
 
-resource "aci_rest_managed" "l3out_default_leak_policy" {
-  count = var.default_leak_policy != null ? 1 : 0
+resource "aci_rest_managed" "l3out_default_route_leak_policy" {
+  count = var.default_route_leak_policy != null ? 1 : 0
 
   dn         = "${aci_l3_outside.l3out.id}/defrtleak"
   class_name = "l3extDefaultRouteLeakP"
   content = {
-    always   = var.default_leak_policy.always
-    criteria = var.default_leak_policy.criteria
-    scope    = var.default_leak_policy.scope != null ? join(",", var.default_leak_policy.scope) : null
+    always   = var.default_route_leak_policy.always
+    criteria = var.default_route_leak_policy.criteria
+    scope    = var.default_route_leak_policy.scope != null ? join(",", var.default_route_leak_policy.scope) : null
   }
 }
 
@@ -213,9 +214,9 @@ resource "aci_bgp_peer_connectivity_profile" "node_bgp_peer" {
   parent_dn           = aci_logical_node_profile.logical_node_profile[each.value.bgp_peer_id].id
   addr                = each.value.bgp_peer.ip_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
-  allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as
+  allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
   annotation          = each.value.bgp_peer.annotation
-  ctrl                = each.value.bgp_peer.bgp_controls
+  ctrl                = [for control in (each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if ((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
   peer_ctrl           = each.value.bgp_peer.peer_controls
@@ -257,9 +258,8 @@ resource "aci_l3out_static_route" "static_route" {
 
   fabric_node_dn             = aci_logical_node_to_fabric_node.logical_node_fabric[each.value.address_node_dn].id
   ip                         = each.value.route.ip
-  aggregate                  = each.value.route.aggregate
   pref                       = each.value.route.fallback_preference
-  rt_ctrl                    = each.value.route.route_control
+  rt_ctrl                    = each.value.route.route_control == true ? "bfd" : "unspecified"
   relation_ip_rs_route_track = each.value.route.track_policy
 }
 
@@ -285,7 +285,6 @@ resource "aci_logical_interface_profile" "logical_interface_profile" {
   relation_l3ext_rs_egress_qos_dpp_pol  = each.value.interface.egress_data_policy_dn
   relation_l3ext_rs_ingress_qos_dpp_pol = each.value.interface.ingress_data_policy_dn
   relation_l3ext_rs_l_if_p_cust_qos_pol = each.value.interface.custom_qos_policy_dn
-  relation_l3ext_rs_arp_if_pol          = each.value.interface.arp_interface_policy_dn
   relation_l3ext_rs_nd_if_pol           = each.value.interface.nd_policy_dn
 
   dynamic "relation_l3ext_rs_l_if_p_to_netflow_monitor_pol" {
@@ -295,6 +294,18 @@ resource "aci_logical_interface_profile" "logical_interface_profile" {
       tn_netflow_monitor_pol_name = relation_l3ext_rs_l_if_p_to_netflow_monitor_pol.value.netflow_monitor_policy_name
     }
   }
+}
+
+resource "aci_l3out_ospf_interface_profile" "ospf_interface" {
+  for_each = { for interface in local.logical_interfaces : interface.interface_placeholder => interface.interface.ospf_interface_profile if interface.interface.ospf_interface_profile != null }
+
+  logical_interface_profile_dn = aci_logical_interface_profile.logical_interface_profile[each.key].id
+  description                  = each.value.description
+  annotation                   = each.value.annotation
+  auth_key                     = each.value.authentication_key
+  auth_key_id                  = each.value.authentication_key_id
+  auth_type                    = each.value.authentication_type
+  relation_ospf_rs_if_pol      = each.value.ospf_interface_policy
 }
 
 resource "aci_l3out_bfd_interface_profile" "bfd_interface" {
@@ -402,11 +413,11 @@ resource "aci_l3out_floating_svi" "floating_svi" {
   dynamic "relation_l3ext_rs_dyn_path_att" {
     for_each = { for path in local.floating_svi_path : path.svi_placeholder => path.svi if each.value.float_placeholder == path.float_placeholder }
     content {
-      tdn              = relation_l3ext_rs_dyn_path_att.value.target_dn
+      tdn              = relation_l3ext_rs_dyn_path_att.value.domain_dn
       floating_address = relation_l3ext_rs_dyn_path_att.value.floating_address
-      forged_transmit  = relation_l3ext_rs_dyn_path_att.value.forged_transmit
-      mac_change       = relation_l3ext_rs_dyn_path_att.value.mac_change
-      promiscuous_mode = relation_l3ext_rs_dyn_path_att.value.promiscuous_mode
+      forged_transmit  = relation_l3ext_rs_dyn_path_att.value.forged_transmit == true ? "Enabled" : "Disabled"
+      mac_change       = relation_l3ext_rs_dyn_path_att.value.mac_change == true ? "Enabled" : "Disabled"
+      promiscuous_mode = relation_l3ext_rs_dyn_path_att.value.promiscuous_mode == true ? "Enabled" : "Disabled"
     }
   }
 }
@@ -417,9 +428,9 @@ resource "aci_bgp_peer_connectivity_profile" "floating_svi_bgp_peer" {
   parent_dn           = aci_l3out_floating_svi.floating_svi[each.value.bgp_peer_id].id
   addr                = each.value.bgp_peer.ip_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
-  allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as
+  allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
   annotation          = each.value.bgp_peer.annotation
-  ctrl                = each.value.bgp_peer.bgp_controls
+  ctrl                = [for control in (each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if ((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
   peer_ctrl           = each.value.bgp_peer.peer_controls
@@ -493,9 +504,9 @@ resource "aci_bgp_peer_connectivity_profile" "interface_bgp_peer" {
   parent_dn           = aci_l3out_path_attachment.l3out_path[each.value.bgp_peer_id].id
   addr                = each.value.bgp_peer.ip_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
-  allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as
+  allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
   annotation          = each.value.bgp_peer.annotation
-  ctrl                = each.value.bgp_peer.bgp_controls
+  ctrl                = [for control in (each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if ((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
   peer_ctrl           = each.value.bgp_peer.peer_controls
