@@ -8,13 +8,21 @@ resource "aci_l3_outside" "l3out" {
   target_dscp                     = var.target_dscp
   relation_l3ext_rs_ectx          = var.vrf_dn
   relation_l3ext_rs_l3_dom_att    = var.l3_domain_dn
-  relation_l3ext_rs_interleak_pol = var.route_profile_for_interleak_dn
+  relation_l3ext_rs_interleak_pol = contains(keys(local.route_control_for_interleak), "interleak") ? values(local.route_control_for_interleak)[0] : [""][0]
 
   dynamic "relation_l3ext_rs_dampening_pol" {
     for_each = var.route_control_for_dampening
     content {
-      af                     = "${relation_l3ext_rs_dampening_pol.value.address_family}-ucast"
-      tn_rtctrl_profile_name = relation_l3ext_rs_dampening_pol.value.route_map_dn
+      af                   = "${relation_l3ext_rs_dampening_pol.value.address_family}-ucast"
+      tn_rtctrl_profile_dn = relation_l3ext_rs_dampening_pol.value.route_map_dn
+    }
+  }
+
+  dynamic "relation_l3extrs_redistribute_pol" {
+    for_each = { for redistribution in var.route_control_for_interleak_redistribution : redistribution.source => redistribution if redistribution.source != "interleak" }
+    content {
+      source    = relation_l3extrs_redistribute_pol.key
+      target_dn = relation_l3extrs_redistribute_pol.value.route_map_dn
     }
   }
 }
@@ -22,12 +30,12 @@ resource "aci_l3_outside" "l3out" {
 resource "aci_l3out_ospf_external_policy" "ospf" {
   count = (var.ospf != null) ? 1 : 0
 
-  l3_outside_dn     = aci_l3_outside.l3out.id
-  area_id           = var.ospf.area_id
-  area_type         = var.ospf.area_type
-  area_cost         = var.ospf.area_cost
-  annotation        = var.annotation
-  area_ctrl         = var.ospf.area_ctrl
+  l3_outside_dn = aci_l3_outside.l3out.id
+  area_id       = var.ospf.area_id
+  area_type     = var.ospf.area_type
+  area_cost     = var.ospf.area_cost
+  annotation    = var.annotation
+  area_ctrl     = var.ospf.area_ctrl
 }
 
 resource "aci_l3out_bgp_external_policy" "external_bgp" {
@@ -35,56 +43,34 @@ resource "aci_l3out_bgp_external_policy" "external_bgp" {
 
   l3_outside_dn = aci_l3_outside.l3out.id
   annotation    = var.annotation
-  name_alias = var.bgp.alias
+  name_alias    = var.bgp.alias
 }
 
 resource "aci_external_network_instance_profile" "l3out_external_epgs" {
   for_each = { for ext_epg in var.external_epgs : ext_epg.name => ext_epg }
 
-  l3_outside_dn          = aci_l3_outside.l3out.id
-  annotation             = each.value.annotation
-  description            = each.value.description
-  exception_tag          = each.value.exception_tag
-  match_t                = each.value.label_match_criteria
-  name_alias             = each.value.alias
-  name                   = each.value.name
-  pref_gr_memb           = each.value.preferred_group_member == true ? "include" : "exclude"
-  prio                   = each.value.qos_class
-  target_dscp            = each.value.target_dscp
-  relation_fv_rs_prov    = each.value.provided_contracts != null ? each.value.provided_contracts : []
-  relation_fv_rs_cons_if = each.value.consumed_contract_interfaces != null ? each.value.consumed_contract_interfaces : []
-  relation_fv_rs_cons    = each.value.consumed_contracts != null ? each.value.consumed_contracts : []
-  relation_fv_rs_prot_by = each.value.taboo_contracts != null ? each.value.taboo_contracts : []
-
-  # contains(keys(local.route_control_context_match_rules_dn), each.value.context.name) ? local.route_control_context_match_rules_dn[each.value.context.name] : []
+  l3_outside_dn                = aci_l3_outside.l3out.id
+  annotation                   = each.value.annotation
+  description                  = each.value.description
+  exception_tag                = each.value.exception_tag
+  match_t                      = each.value.label_match_criteria
+  name_alias                   = each.value.alias
+  name                         = each.value.name
+  pref_gr_memb                 = each.value.preferred_group_member == true ? "include" : "exclude"
+  prio                         = each.value.qos_class
+  target_dscp                  = each.value.target_dscp
+  relation_fv_rs_prov          = each.value.provided_contracts != null ? each.value.provided_contracts : []
+  relation_fv_rs_cons_if       = each.value.consumed_contract_interfaces != null ? each.value.consumed_contract_interfaces : []
+  relation_fv_rs_cons          = each.value.consumed_contracts != null ? each.value.consumed_contracts : []
+  relation_fv_rs_prot_by       = each.value.taboo_contracts != null ? each.value.taboo_contracts : []
+  relation_fv_rs_sec_inherited = each.value.inherited_contracts != null ? each.value.inherited_contracts : []
 
   dynamic "relation_l3ext_rs_inst_p_to_profile" {
     for_each = contains(keys(local.external_epg_route_control_profiles), each.value.name) ? local.external_epg_route_control_profiles[each.value.name] : []
     content {
-      direction              = relation_l3ext_rs_inst_p_to_profile.value.direction
-      tn_rtctrl_profile_name = relation_l3ext_rs_inst_p_to_profile.value.name
+      direction            = relation_l3ext_rs_inst_p_to_profile.value.direction
+      tn_rtctrl_profile_dn = relation_l3ext_rs_inst_p_to_profile.value.route_map_dn
     }
-  }
-}
-
-resource "aci_rest_managed" "l3out_external_epg_contract_masters" {
-  for_each = { for contract in local.external_epg_contract_masters : contract.external_epg_name => contract }
-
-  dn         = "${aci_external_network_instance_profile.l3out_external_epgs[each.key].id}/rssecInherited-[${aci_l3_outside.l3out.tenant_dn}/out-${each.value.contract.l3out}/instP-${each.value.contract.external_epg}]"
-  class_name = "fvRsSecInherited"
-  content = {
-    tDn = "${aci_l3_outside.l3out.tenant_dn}/out-${each.value.contract.l3out}/instP-${each.value.contract.external_epg}"
-  }
-}
-
-resource "aci_rest_managed" "l3out_route_profiles_for_redistribution" {
-  for_each = { for redistribution in var.route_profiles_for_redistribution : redistribution.source => redistribution }
-
-  dn         = "${aci_l3_outside.l3out.id}/rsredistributePol-[${split("prof-", each.value.route_map_dn)[1]}]-${each.value.source}"
-  class_name = "l3extRsRedistributePol"
-  content = {
-    src                 = each.value.source
-    tnRtctrlProfileName = split("prof-", each.value.route_map_dn)[1]
   }
 }
 
@@ -216,7 +202,7 @@ resource "aci_bgp_peer_connectivity_profile" "node_bgp_peer" {
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
   annotation          = each.value.bgp_peer.annotation
-  ctrl                = [for control in (each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if ((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
+  ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
   peer_ctrl           = each.value.bgp_peer.peer_controls
@@ -430,7 +416,7 @@ resource "aci_bgp_peer_connectivity_profile" "floating_svi_bgp_peer" {
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
   annotation          = each.value.bgp_peer.annotation
-  ctrl                = [for control in (each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if ((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
+  ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
   peer_ctrl           = each.value.bgp_peer.peer_controls
@@ -506,7 +492,7 @@ resource "aci_bgp_peer_connectivity_profile" "interface_bgp_peer" {
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
   annotation          = each.value.bgp_peer.annotation
-  ctrl                = [for control in (each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if ((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
+  ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
   peer_ctrl           = each.value.bgp_peer.peer_controls

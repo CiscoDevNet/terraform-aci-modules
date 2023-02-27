@@ -14,12 +14,12 @@ provider "aci" {
 }
 
 data "aci_tenant" "common" {
-  name  = "common"
+  name = "common"
 }
 
 data "aci_vrf" "default" {
-  tenant_dn  = data.aci_tenant.common.id
-  name       = "default"
+  tenant_dn = data.aci_tenant.common.id
+  name      = "default"
 }
 
 resource "aci_l3_domain_profile" "profile" {
@@ -27,7 +27,7 @@ resource "aci_l3_domain_profile" "profile" {
 }
 
 module "l3out" {
-  source                    = "../l3out"
+  source                    = "../../../l3out"
   tenant_dn                 = data.aci_tenant.common.id
   name                      = "WAN"
   alias                     = "l3out"
@@ -83,7 +83,7 @@ module "l3out" {
       subnets = [
         {
           ip    = "0.0.0.0/0"
-          scope = ["shared-rtctrl", "import-security", "shared-security"]
+          scope = ["export-rtctrl"]
         }
       ]
     }

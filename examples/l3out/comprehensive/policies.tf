@@ -78,15 +78,27 @@ resource "aci_match_rule" "rule3" {
   name      = "match_rule3"
 }
 
-resource "aci_route_control_profile" "profile" {
+resource "aci_route_control_profile" "profile1" {
   parent_dn                  = aci_tenant.tenant.id
-  name                       = "route_profile"
+  name                       = "route_profile1"
   route_control_profile_type = "global"
 }
 
 resource "aci_route_control_profile" "profile2" {
   parent_dn                  = aci_tenant.tenant.id
   name                       = "route_profile2"
+  route_control_profile_type = "global"
+}
+
+resource "aci_route_control_profile" "profile3" {
+  parent_dn                  = aci_tenant.tenant.id
+  name                       = "route_profile3"
+  route_control_profile_type = "global"
+}
+
+resource "aci_route_control_profile" "profile4" {
+  parent_dn                  = aci_tenant.tenant.id
+  name                       = "route_profile4"
   route_control_profile_type = "global"
 }
 

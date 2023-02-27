@@ -4,6 +4,11 @@ locals {
     if external_epg.route_control_profiles != null
   }
 
+  route_control_for_interleak = {
+    for interleak in var.route_control_for_interleak_redistribution : interleak.source => interleak.route_map_dn
+    if interleak.source == "interleak"
+  }
+
   external_epg_contract_masters = (flatten([
     for external_epg in var.external_epgs : [
       for contract in(external_epg.contract_masters == null) ? [] : external_epg.contract_masters : {
@@ -43,26 +48,15 @@ locals {
     if context.context.match_rules_dn != null
   }
 
-    logical_nodes_profiles = (flatten([
-    for Node in var.logical_node_profiles[0].name:[
-      for profile in var.logical_node_profiles  : {
-        profile_name     = Node
-        profile_placeholder = Node
-        profile             = profile
-      }
-    ]
-  ]))
-
   logical_nodes = (flatten([
-    for Node in var.logical_node_profiles[0].name:[
     for profile in var.logical_node_profiles : [
       for node in(profile.nodes == null) ? [] : profile.nodes : {
-        profile_name     = Node
-        node_placeholder = "[${Node}]_[pod-${node.pod_id}/node-${node.node_id}]"
+        profile_name     = profile.name
+        node_placeholder = "[${profile.name}]_[pod-${node.pod_id}/node-${node.node_id}]"
         node             = node
       }
     ]
-  ]]))
+  ]))
 
   bgp_peers_nodes = (flatten([
     for profile in var.logical_node_profiles : [
@@ -73,7 +67,7 @@ locals {
       }
     ]
   ]))
-  
+
   bgp_peer_nodes_route_control_profiles = (flatten([
     for bgp in local.bgp_peers_nodes : [
       for control in(bgp.bgp_peer.route_control_profiles == null) ? [] : bgp.bgp_peer.route_control_profiles : {
@@ -88,7 +82,7 @@ locals {
   logical_nodes_loopback_addresses = (flatten([
     for node in local.logical_nodes : [
       for loopback_address in(node.node.loopback_address == null) ? [] : [node.node.loopback_address] : {
-        address_node_dn     = "[${node.profile_name}]_[pod-${node.node.pod_id}/node-${node.node.node_id}]"
+        address_node_dn     = node.node_placeholder
         address_placeholder = loopback_address
         ip                  = loopback_address
       }
@@ -98,8 +92,8 @@ locals {
   logical_nodes_static_routes = (flatten([
     for node in local.logical_nodes : [
       for static_route in(node.node.static_routes == null) ? [] : node.node.static_routes : {
-        address_node_dn   = "[${node.profile_name}]_[pod-${node.node.pod_id}/node-${node.node.node_id}]"
-        route_placeholder = "[${node.profile_name}]_[${static_route.ip}]_[pod-${node.node.pod_id}/node-${node.node.node_id}]"
+        address_node_dn   = node.node_placeholder
+        route_placeholder = "[${static_route.ip}]_[pod-${node.node.pod_id}/node-${node.node.node_id}]"
         route             = static_route
       }
     ]
@@ -116,15 +110,14 @@ locals {
   ]))
 
   logical_interfaces = (flatten([
-     for Node in var.logical_node_profiles[0].name:[
     for profile in var.logical_node_profiles : [
       for interface in(profile.interfaces == null) ? [] : profile.interfaces : {
-        profile_name          = Node
-        interface_placeholder = "[${Node}]_[${interface.name}]"
+        profile_name          = profile.name
+        interface_placeholder = interface.name
         interface             = interface
       }
     ]
-  ]]))
+  ]))
 
   logical_interfaces_netflow_monitor = (flatten([
     for interface in local.logical_interfaces : [
@@ -161,8 +154,8 @@ locals {
   paths = (flatten([
     for interface in local.logical_interfaces : [
       for path in(interface.interface.paths == null) ? [] : interface.interface.paths : {
-        path_id          = interface.interface_placeholder
-        path_placeholder = "[${path.interface_type}]_[${path.path_type}]_[${path.ip_address}]_[${interface.interface_placeholder}]"
+        path_id          = interface.interface.name
+        path_placeholder = path.ip_address != null ? "[${path.interface_type}]_[${path.path_type}]_[${path.ip_address}]_[${interface.interface.name}]" : "[${path.interface_type}]_[${path.path_type}]_[0.0.0.0/0]_[${interface.interface.name}]"
         path             = path
       }
     ]
@@ -203,7 +196,7 @@ locals {
     for elements in local.paths : [
       for address in(elements.path.side_A == null) ? [] : [elements.path.side_A] : {
         address_A_id          = elements.path_placeholder
-        address_A_placeholder = "[${address.ip_address}]_[${elements.path.ip_address}]_[${elements.path_id}]"
+        address_A_placeholder = "[${address.ip_address}]_[0.0.0.0/0]_[${elements.path_id}]"
         address_A             = address
       }
     ]
@@ -213,7 +206,7 @@ locals {
     for elements in local.paths : [
       for address in(elements.path.side_B == null) ? [] : [elements.path.side_B] : {
         address_B_id          = elements.path_placeholder
-        address_B_placeholder = "[${address.ip_address}]_[${elements.path.ip_address}]_[${elements.path_id}]"
+        address_B_placeholder = "[${address.ip_address}]_[0.0.0.0/0]_[${elements.path_id}]"
         address_B             = address
       }
     ]

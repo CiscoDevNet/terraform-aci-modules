@@ -30,6 +30,11 @@ resource "aci_imported_contract" "imported_contract" {
   name      = "imported_contract"
 }
 
+resource "aci_imported_contract" "imported_contract2" {
+  tenant_dn = aci_tenant.tenant.id
+  name      = "imported_contract2"
+}
+
 resource "aci_taboo_contract" "taboo_contract" {
   tenant_dn = aci_tenant.tenant.id
   name      = "testcon"
