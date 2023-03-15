@@ -285,4 +285,286 @@ locals {
       }
     ]
   ]))
+
+  static_routes = (flatten([
+    for node in var.nodes : [
+      for static_route in(node.static_routes == null) ? [] : node.static_routes : {
+        pod_id            = "${node.pod_id}"
+        node_id           = "${node.node_id}"
+        route_placeholder = "[${static_route.prefix}]_[pod-${node.pod_id}/node-${node.node_id}]"
+        route             = static_route
+      }
+    ]
+  ]))
+
+  next_hops = (flatten([
+    for static_routes in local.static_routes : [
+      for hop in(static_routes.route.next_hop_addresses == null) ? [] : static_routes.route.next_hop_addresses : {
+        static_ip            = static_routes.route_placeholder
+        next_hop_placeholder = "[${hop.next_hop_ip}]_[${static_routes.route_placeholder}]"
+        next_hop             = hop
+      }
+    ]
+  ]))
+
+  bgp_peer_global_to_node = (flatten([
+    for node in var.nodes : [
+      for bgp_peer in var.bgp_peers : {
+        pod_id               = "${node.pod_id}"
+        node_id              = "${node.node_id}"
+        bgp_peer_placeholder = bgp_peer.ip_address != null ? "[${bgp_peer.ip_address}]_[pod-${node.pod_id}/node-${node.node_id}]" : "[${bgp_peer.ipv6_address}]_[pod-${node.pod_id}/node-${node.node_id}]"
+        bgp_peer             = bgp_peer
+      }
+      if bgp_peer.loopback_as_source != false && (bgp_peer.ip_address != null || bgp_peer.ipv6_address != null)
+    ]
+  ]))
+
+  bgp_peer_route_control_profiles_global_to_node = (flatten([
+    for bgp in local.bgp_peer_global_to_node : [
+      for control in(bgp.bgp_peer.route_control_profiles == null) ? [] : bgp.bgp_peer.route_control_profiles : {
+        control_id           = bgp.bgp_peer.ip_address != null ? bgp.bgp_peer.ip_address : bgp.bgp_peer.ipv6_address
+        control_placeholder  = "[${control.target_dn}]_[${control.direction}]_${bgp.bgp_peer_placeholder}"
+        bgp_peer_placeholder = bgp.bgp_peer_placeholder
+        control              = control
+      }
+    ]
+  ]))
+
+  bgp_peer_global_to_interface_ip_placeholder = (flatten([
+    for node in var.nodes : [
+      for bgp_peer in var.bgp_peers : {
+        pod_id               = "${node.pod_id}"
+        node_id              = "${node.node_id}"
+        bgp_peer_placeholder = "[${bgp_peer.ip_address}]_[pod-${node.pod_id}/node-${node.node_id}]"
+        bgp_peer             = bgp_peer
+        bgp_peer_dns         = [for id, path in local.ip : (node.node_id == path.node_id) ? { dn = id } : null]
+      }
+      if(bgp_peer.loopback_as_source == false && bgp_peer.ip_address != null && bgp_peer.ipv6_address == null)
+    ]
+  ]))
+
+  bgp_peer_global_to_interface_ip = (flatten([
+    for bgp_peer in local.bgp_peer_global_to_interface_ip_placeholder : [
+      for peer in bgp_peer.bgp_peer_dns : {
+        node_id              = bgp_peer.node_id
+        bgp_peer_placeholder = bgp_peer.bgp_peer_placeholder
+        bgp_peer             = bgp_peer.bgp_peer
+        bgp_peer_dn          = peer
+      }
+    ]
+  ]))
+
+  bgp_peer_global_route_control_profiles_interface_ip = (flatten([
+    for bgp in local.bgp_peer_global_to_interface_ip : [
+      for control in(bgp.bgp_peer.route_control_profiles == null) ? [] : bgp.bgp_peer.route_control_profiles : {
+        control_id           = bgp.bgp_peer.ip_address
+        control_placeholder  = "[${control.target_dn}]_[${control.direction}]_${bgp.bgp_peer_placeholder}"
+        bgp_peer_placeholder = bgp.bgp_peer_placeholder
+        bgp_peer_dn          = bgp.bgp_peer_dn
+        control              = control
+      }
+    ]
+  ]))
+
+  bgp_peer_global_to_interface_ipv6_placeholder = (flatten([
+    for node in var.nodes : [
+      for bgp_peer in var.bgp_peers : {
+        pod_id               = "${node.pod_id}"
+        node_id              = "${node.node_id}"
+        bgp_peer_placeholder = "[${bgp_peer.ipv6_address}]_[pod-${node.pod_id}/node-${node.node_id}]"
+        bgp_peer             = bgp_peer
+        bgp_peer_dns         = [for id, path in local.ipv6 : (node.node_id == path.node_id) ? { dn = id } : null]
+      }
+      if(bgp_peer.loopback_as_source == false && bgp_peer.ipv6_address != null && bgp_peer.ip_address == null)
+    ]
+  ]))
+
+  bgp_peer_global_to_interface_ipv6 = (flatten([
+    for bgp_peer in local.bgp_peer_global_to_interface_ipv6_placeholder : [
+      for peer in bgp_peer.bgp_peer_dns : {
+        node_id              = bgp_peer.node_id
+        bgp_peer_placeholder = bgp_peer.bgp_peer_placeholder
+        bgp_peer             = bgp_peer.bgp_peer
+        bgp_peer_dn          = peer
+      }
+    ]
+  ]))
+
+  bgp_peer_global_route_control_profiles_interface_ipv6 = (flatten([
+    for bgp in local.bgp_peer_global_to_interface_ipv6 : [
+      for control in(bgp.bgp_peer.route_control_profiles == null) ? [] : bgp.bgp_peer.route_control_profiles : {
+        control_id           = bgp.bgp_peer.ipv6_address
+        control_placeholder  = "[${control.target_dn}]_[${control.direction}]_${bgp.bgp_peer_placeholder}"
+        bgp_peer_placeholder = bgp.bgp_peer_placeholder
+        bgp_peer_dn          = bgp.bgp_peer_dn
+        control              = control
+      }
+    ]
+  ]))
+
+  bgp_peers_node = (flatten([
+    for node in var.nodes : [
+      for bgp_peer in(node.bgp_peers == null) ? [] : node.bgp_peers : {
+        pod_id               = "${node.pod_id}"
+        node_id              = "${node.node_id}"
+        bgp_peer_placeholder = bgp_peer.ip_address != null ? "[${bgp_peer.ip_address}]_[pod-${node.pod_id}/node-${node.node_id}]" : "[${bgp_peer.ipv6_address}]_[pod-${node.pod_id}/node-${node.node_id}]"
+        bgp_peer             = bgp_peer
+      }
+      if bgp_peer.loopback_as_source != false
+    ]
+  ]))
+
+  bgp_peer_route_control_profiles_node = (flatten([
+    for bgp in local.bgp_peers_node : [
+      for control in(bgp.bgp_peer.route_control_profiles == null) ? [] : bgp.bgp_peer.route_control_profiles : {
+        control_id           = bgp.bgp_peer.ip_address != null ? bgp.bgp_peer.ip_address : bgp.bgp_peer.ipv6_address
+        control_placeholder  = "[${control.target_dn}]_[${control.direction}]_${bgp.bgp_peer_placeholder}"
+        bgp_peer_placeholder = bgp.bgp_peer_placeholder
+        control              = control
+      }
+    ]
+  ]))
+
+  bgp_peers_node_to_interface_ip_placeholder = (flatten([
+    for node in var.nodes : [
+      for bgp_peer in(node.bgp_peers == null) ? [] : node.bgp_peers : {
+        pod_id               = "${node.pod_id}"
+        node_id              = "${node.node_id}"
+        bgp_peer_placeholder = "[${bgp_peer.ip_address}]_[pod-${node.pod_id}/node-${node.node_id}]"
+        bgp_peer             = bgp_peer
+        bgp_peer_dns         = [for id, path in local.ip : (node.node_id == path.node_id) ? { dn = id } : null]
+      }
+      if(bgp_peer.loopback_as_source == false && bgp_peer.ipv6_address == null)
+    ]
+  ]))
+
+  bgp_peers_node_to_interface_ip = (flatten([
+    for bgp_peer in local.bgp_peers_node_to_interface_ip_placeholder : [
+      for peer in bgp_peer.bgp_peer_dns : {
+        node_id              = bgp_peer.node_id
+        bgp_peer_placeholder = bgp_peer.bgp_peer_placeholder
+        bgp_peer             = bgp_peer.bgp_peer
+        bgp_peer_dn          = peer
+      }
+    ]
+  ]))
+
+  bgp_peer_route_control_profiles_node_to_interface_ip = (flatten([
+    for bgp in local.bgp_peers_node_to_interface_ip : [
+      for control in(bgp.bgp_peer.route_control_profiles == null) ? [] : bgp.bgp_peer.route_control_profiles : {
+        control_id           = bgp.bgp_peer.ip_address
+        control_placeholder  = "[${control.target_dn}]_[${control.direction}]_${bgp.bgp_peer_placeholder}"
+        bgp_peer_placeholder = bgp.bgp_peer_placeholder
+        bgp_peer_dn          = bgp.bgp_peer_dn
+        control              = control
+      }
+    ]
+  ]))
+
+  bgp_peers_node_to_interface_ipv6_placeholder = (flatten([
+    for node in var.nodes : [
+      for bgp_peer in(node.bgp_peers == null) ? [] : node.bgp_peers : {
+        pod_id               = "${node.pod_id}"
+        node_id              = "${node.node_id}"
+        bgp_peer_placeholder = "[${bgp_peer.ipv6_address}]_[pod-${node.pod_id}/node-${node.node_id}]"
+        bgp_peer             = bgp_peer
+        bgp_peer_dns         = [for id, path in local.ipv6 : (node.node_id == path.node_id) ? { dn = id } : null]
+      }
+      if(bgp_peer.loopback_as_source == false && bgp_peer.ipv6_address != null)
+    ]
+  ]))
+
+  bgp_peers_node_to_interface_ipv6 = (flatten([
+    for bgp_peer in local.bgp_peers_node_to_interface_ipv6_placeholder : [
+      for peer in bgp_peer.bgp_peer_dns : {
+        node_id              = bgp_peer.node_id
+        bgp_peer_placeholder = bgp_peer.bgp_peer_placeholder
+        bgp_peer             = bgp_peer.bgp_peer
+        bgp_peer_dn          = peer
+      }
+    ]
+  ]))
+
+  bgp_peer_route_control_profiles_node_to_interface_ipv6 = (flatten([
+    for bgp in local.bgp_peers_node_to_interface_ipv6 : [
+      for control in(bgp.bgp_peer.route_control_profiles == null) ? [] : bgp.bgp_peer.route_control_profiles : {
+        control_id           = bgp.bgp_peer.ipv6_address
+        control_placeholder  = "[${control.target_dn}]_[${control.direction}]_${bgp.bgp_peer_placeholder}"
+        bgp_peer_placeholder = bgp.bgp_peer_placeholder
+        bgp_peer_dn          = bgp.bgp_peer_dn
+        control              = control
+      }
+    ]
+  ]))
+
+  ip = (flatten([
+    for node in var.nodes : [
+      for idx, path in(node.interfaces == null) ? [] : node.interfaces : {
+        pod_id           = "${node.pod_id}"
+        node_id          = "${node.node_id}"
+        path_placeholder = (path.port != null) ? "${path.port}_${node.node_id}" : ((path.channel != null) ? "${path.channel}_${node.node_id}" : "${path.anchor_node}_${node.node_id}")
+        path             = path
+        path_id          = "pod_${node.pod_id}_node_${node.node_id}_ipv4"
+      }
+      if(path.ip != null)
+    ]
+  ]))
+
+  ipv6 = (flatten([
+    for node in var.nodes : [
+      for idx, path in(node.interfaces == null) ? [] : node.interfaces : {
+        pod_id           = "${node.pod_id}"
+        node_id          = "${node.node_id}"
+        path_placeholder = (path.port != null) ? "${path.port}_${node.node_id}" : ((path.channel != null) ? "${path.channel}_${node.node_id}" : "${path.anchor_node}_${node.node_id}")
+        path             = path
+        path_id          = "pod_${node.pod_id}_node_${node.node_id}_ipv6"
+
+      }
+      if(path.ipv6 != null)
+    ]
+  ]))
+
+  bgp_peers_interface_ip = (flatten([
+    for elements in local.ip : [
+      for bgp_peer in(elements.path.bgp_peers == null) ? [] : elements.path.bgp_peers : {
+        bgp_peer_id          = elements.path_placeholder
+        bgp_peer_placeholder = "[${bgp_peer.ip_address}]_${elements.path_placeholder}"
+        bgp_peer             = bgp_peer
+      }
+      if(bgp_peer.ipv6_address == null)
+    ]
+  ]))
+
+  bgp_peer_route_control_profiles_interface_ip = (flatten([
+    for bgp in local.bgp_peers_interface_ip : [
+      for control in(bgp.bgp_peer.route_control_profiles == null) ? [] : bgp.bgp_peer.route_control_profiles : {
+        control_id           = bgp.bgp_peer.ip_address
+        control_placeholder  = "[${control.target_dn}]_[${control.direction}]_${bgp.bgp_peer_placeholder}"
+        bgp_peer_placeholder = bgp.bgp_peer_placeholder
+        control              = control
+      }
+    ]
+  ]))
+
+  bgp_peers_interface_ipv6 = (flatten([
+    for elements in local.ipv6 : [
+      for bgp_peer in(elements.path.bgp_peers == null) ? [] : elements.path.bgp_peers : {
+        bgp_peer_id          = elements.path_placeholder
+        bgp_peer_placeholder = "[${bgp_peer.ipv6_address}]_${elements.path_placeholder}"
+        bgp_peer             = bgp_peer
+      }
+      if(bgp_peer.ipv6_address != null)
+    ]
+  ]))
+
+  bgp_peer_route_control_profiles_interface_ipv6 = (flatten([
+    for bgp in local.bgp_peers_interface_ipv6 : [
+      for control in(bgp.bgp_peer.route_control_profiles == null) ? [] : bgp.bgp_peer.route_control_profiles : {
+        control_id           = bgp.bgp_peer.ipv6_address
+        control_placeholder  = "[${control.target_dn}]_[${control.direction}]_${bgp.bgp_peer_placeholder}"
+        bgp_peer_placeholder = bgp.bgp_peer_placeholder
+        control              = control
+      }
+    ]
+  ]))
 }

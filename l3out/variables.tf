@@ -557,3 +557,234 @@ variable "logical_node_profiles" {
     error_message = "Valid values for target_dscp in logical_node_profiles are (CS0, CS1, AF11, AF12, AF13, CS2, AF21, AF22, AF23, CS3, CS4, CS5, CS6, CS7, AF31, AF32, AF33, AF41, AF42, AF43, VA, EF, unspecified)"
   }
 }
+
+variable "floating_svi" {
+  type = object(
+    {
+      domain_dn                         = optional(string)
+      floating_ip                       = optional(string)
+      floating_ipv6                     = optional(string)
+      forged_transmit                   = optional(bool)
+      mac_change                        = optional(bool)
+      promiscuous_mode                  = optional(bool)
+      floating_secondary_ip_addresses   = optional(list(string))
+      floating_secondary_ipv6_addresses = optional(list(string))
+      vlan                              = optional(string)
+      anchor_nodes = optional(list(object(
+        {
+          pod_id          = string
+          node_id         = string
+          ip_address      = optional(string)
+          ipv6_address    = optional(string)
+          description     = optional(string)
+          mtu             = optional(string)
+          vlan            = optional(string)
+          encap_scope     = optional(string)
+          mode            = optional(string)
+          annotation      = optional(string)
+          autostate       = optional(string)
+          ipv6_dad        = optional(string)
+          link_local_addr = optional(string)
+          mac             = optional(string)
+          target_dscp     = optional(string)
+          bgp_peers = optional(list(object(
+            {
+              ip_address          = string
+              address_control     = optional(list(string))
+              allowed_self_as_cnt = optional(string)
+              annotation          = optional(string)
+              bgp_controls = optional(object(
+                {
+                  allow_self_as     = optional(bool)
+                  as_override       = optional(bool)
+                  dis_peer_as_check = optional(bool)
+                  nh_self           = optional(bool)
+                  send_com          = optional(bool)
+                  send_ext_com      = optional(bool)
+                }
+              ))
+              alias                  = optional(string)
+              password               = optional(string)
+              peer_controls          = optional(list(string))
+              private_as_control     = optional(list(string))
+              ebgp_multihop_ttl      = optional(string)
+              weight                 = optional(string)
+              as_number              = optional(string)
+              local_asn              = optional(string)
+              local_as_number_config = optional(string)
+              admin_state            = optional(string)
+              route_control_profiles = optional(list(object({
+                direction = string
+                target_dn = string
+                }
+              )))
+            }
+          )))
+        }
+      )))
+  })
+  default = {
+    # domain_dn = null
+    # floating_ip = null
+    # floating_ipv6 = null
+    anchor_nodes       = []
+    loopback_as_source = true
+  }
+}
+
+variable "bgp_peers" {
+  type = list(object(
+    {
+      loopback_as_source  = optional(bool)
+      ip_address          = optional(string)
+      ipv6_address        = optional(string)
+      address_control     = optional(list(string))
+      allowed_self_as_cnt = optional(string)
+      annotation          = optional(string)
+      bgp_controls = optional(object(
+        {
+          allow_self_as     = optional(bool)
+          as_override       = optional(bool)
+          dis_peer_as_check = optional(bool)
+          nh_self           = optional(bool)
+          send_com          = optional(bool)
+          send_ext_com      = optional(bool)
+        }
+      ))
+      alias                  = optional(string)
+      password               = optional(string)
+      peer_controls          = optional(list(string))
+      private_as_control     = optional(list(string))
+      ebgp_multihop_ttl      = optional(string)
+      weight                 = optional(string)
+      as_number              = optional(string)
+      local_asn              = optional(string)
+      local_as_number_config = optional(string)
+      admin_state            = optional(string)
+      route_control_profiles = optional(list(object({
+        direction = string
+        target_dn = string
+        }
+      )))
+    }
+  ))
+  default = [
+    {
+      loopback_as_source = true
+  }]
+}
+
+variable "nodes" {
+  type = list(object(
+    {
+      node_id            = optional(string)
+      pod_id             = optional(string)
+      router_id          = optional(string)
+      router_id_loopback = optional(string)
+      loopback_address   = optional(string)
+      static_routes = optional(list(object(
+        {
+          prefix              = string
+          fallback_preference = optional(string)
+          route_control       = optional(bool)
+          track_policy        = optional(string)
+          next_hop_addresses = optional(list(object(
+            {
+              next_hop_ip           = string
+              preference            = optional(string)
+              next_hop_profile_type = optional(string)
+              track_member          = optional(string)
+              track_policy          = optional(string)
+
+            }
+          )))
+        }
+      )))
+      bgp_peers = optional(list(object(
+        {
+          loopback_as_source  = optional(bool)
+          ip_address          = optional(string)
+          ipv6_address        = optional(string)
+          address_control     = optional(list(string))
+          allowed_self_as_cnt = optional(string)
+          annotation          = optional(string)
+          bgp_controls = optional(object(
+            {
+              allow_self_as     = optional(bool)
+              as_override       = optional(bool)
+              dis_peer_as_check = optional(bool)
+              nh_self           = optional(bool)
+              send_com          = optional(bool)
+              send_ext_com      = optional(bool)
+            }
+          ))
+          alias                  = optional(string)
+          password               = optional(string)
+          peer_controls          = optional(list(string))
+          private_as_control     = optional(list(string))
+          ebgp_multihop_ttl      = optional(string)
+          weight                 = optional(string)
+          as_number              = optional(string)
+          local_asn              = optional(string)
+          local_as_number_config = optional(string)
+          admin_state            = optional(string)
+          route_control_profiles = optional(list(object({
+            direction = string
+            target_dn = string
+            }
+          )))
+        }
+      )))
+      interfaces = optional(list(object(
+        {
+          floating_svi = optional(bool)
+          svi          = optional(bool)
+          anchor_node  = optional(string)
+          port         = optional(string)
+          channel      = optional(string)
+          ip           = optional(string)
+          ipv6         = optional(string)
+          vlan         = optional(string)
+          bgp_peers = optional(list(object(
+            {
+              ip_address          = optional(string)
+              ipv6_address        = optional(string)
+              address_control     = optional(list(string))
+              allowed_self_as_cnt = optional(string)
+              annotation          = optional(string)
+              bgp_controls = optional(object(
+                {
+                  allow_self_as     = optional(bool)
+                  as_override       = optional(bool)
+                  dis_peer_as_check = optional(bool)
+                  nh_self           = optional(bool)
+                  send_com          = optional(bool)
+                  send_ext_com      = optional(bool)
+                }
+              ))
+              alias                  = optional(string)
+              password               = optional(string)
+              peer_controls          = optional(list(string))
+              private_as_control     = optional(list(string))
+              ebgp_multihop_ttl      = optional(string)
+              weight                 = optional(string)
+              as_number              = optional(string)
+              local_asn              = optional(string)
+              local_as_number_config = optional(string)
+              admin_state            = optional(string)
+              route_control_profiles = optional(list(object({
+                direction = string
+                target_dn = string
+                }
+              )))
+            }
+          )))
+        }
+      )))
+  }))
+  default = [
+    {
+      loopback_as_source = true
+  }]
+}
+        
