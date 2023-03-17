@@ -1,5 +1,5 @@
 resource "aci_logical_node_profile" "dynamic_logical_node_profile" {
-  for_each = { for node in var.nodes : node.node_id => node }
+  for_each = { for node in var.nodes : node.node_id => node if node.node_id != null }
 
   l3_outside_dn = aci_l3_outside.l3out.id
   name          = "pod_${each.value.pod_id}_node_${each.value.node_id}"
@@ -35,7 +35,7 @@ resource "aci_bgp_peer_connectivity_profile" "node_bgp_peers" {
 }
 
 resource "aci_logical_node_to_fabric_node" "dynamic_fabric_nodes" {
-  for_each = { for node in var.nodes : node.node_id => node }
+  for_each = { for node in var.nodes : node.node_id => node if node.node_id != null }
 
   logical_node_profile_dn = aci_logical_node_profile.dynamic_logical_node_profile["${each.key}"].id
   tdn                     = "topology/pod-${each.value.pod_id}/node-${each.value.node_id}"
@@ -44,7 +44,7 @@ resource "aci_logical_node_to_fabric_node" "dynamic_fabric_nodes" {
 }
 
 resource "aci_l3out_loopback_interface_profile" "dynamic_loopback_interfaces" {
-  for_each = { for node in var.nodes : node.node_id => node }
+  for_each = { for node in var.nodes : node.node_id => node if node.node_id != null }
 
   fabric_node_dn = aci_logical_node_to_fabric_node.dynamic_fabric_nodes["${each.key}"].id
   addr           = each.value.loopback_address
@@ -102,6 +102,14 @@ resource "aci_l3out_path_attachment" "dynamic_l3out_path_ipv6" {
   addr                         = each.value.path.ipv6
   encap                        = each.value.path.vlan != null ? "vlan-${each.value.path.vlan}" : null
 }
+
+# resource "aci_l3out_path_attachment_secondary_ip" "secondary_ip_addr" {
+#   for_each = { for addr in local.secondary_address : addr.secondary_address_placeholder => addr }
+
+#   l3out_path_attachment_dn = aci_l3out_path_attachment.l3out_path[each.value.secondary_address_id].id
+#   addr                     = each.value.secondary_address.ip_address
+#   ipv6_dad                 = each.value.secondary_address.ipv6_dad
+#}
 
 # resource "aci_l3out_floating_svi" "floating_svi_ip" {
 #   for_each = { for idx, path in local.ip : idx => path if path.path.anchor_node != null }
@@ -359,12 +367,12 @@ resource "aci_l3out_floating_svi" "floating_svi_ip" {
   description                  = each.value.description
   autostate                    = each.value.autostate
   encap_scope                  = each.value.encap_scope
-  ipv6_dad                     = each.value.ipv6_dad
-  ll_addr                      = each.value.link_local_addr
-  mac                          = each.value.mac
-  mode                         = each.value.mode
-  mtu                          = each.value.mtu
-  target_dscp                  = each.value.target_dscp
+  #ipv6_dad                     = each.value.ipv6_dad
+  #ll_addr                      = each.value.link_local_address
+  mac         = each.value.mac
+  mode        = each.value.mode
+  mtu         = each.value.mtu
+  target_dscp = each.value.target_dscp
 
   relation_l3ext_rs_dyn_path_att {
     tdn              = var.floating_svi.domain_dn
@@ -389,7 +397,7 @@ resource "aci_l3out_floating_svi" "floating_svi_ipv6" {
   autostate                    = each.value.autostate
   encap_scope                  = each.value.encap_scope
   ipv6_dad                     = each.value.ipv6_dad
-  ll_addr                      = each.value.link_local_addr
+  ll_addr                      = each.value.link_local_address
   mac                          = each.value.mac
   mode                         = each.value.mode
   mtu                          = each.value.mtu
@@ -402,6 +410,93 @@ resource "aci_l3out_floating_svi" "floating_svi_ipv6" {
     forged_transmit  = var.floating_svi.forged_transmit == true ? "Enabled" : "Disabled"
     mac_change       = var.floating_svi.mac_change == true ? "Enabled" : "Disabled"
     promiscuous_mode = var.floating_svi.promiscuous_mode == true ? "Enabled" : "Disabled"
+  }
+}
+
+resource "aci_l3out_path_attachment_secondary_ip" "floating_svi_secondary_ip_address" {
+  for_each = { for addr in local.floating_svi_secondary_ip_address : addr.secondary_address_placeholder => addr }
+
+  l3out_path_attachment_dn = "${aci_l3out_floating_svi.floating_svi_ip[each.value.secondary_address_id].id}/rsdynPathAtt-[${var.floating_svi.domain_dn}]"
+  addr                     = each.value.secondary_address
+}
+
+resource "aci_l3out_path_attachment_secondary_ip" "floating_svi_secondary_ipv6_address" {
+  for_each = { for addr in local.floating_svi_secondary_ipv6_address : addr.secondary_address_placeholder => addr }
+
+  l3out_path_attachment_dn = "${aci_l3out_floating_svi.floating_svi_ipv6[each.value.secondary_address_id].id}/rsdynPathAtt-[${var.floating_svi.domain_dn}]"
+  addr                     = each.value.secondary_address
+  ipv6_dad                 = "disabled"
+}
+
+resource "aci_l3out_path_attachment_secondary_ip" "floating_svi_anchor_node_secondary_ip_address" {
+  for_each = { for addr in local.anchor_node_secondary_ip_address : addr.secondary_address_placeholder => addr }
+
+  l3out_path_attachment_dn = aci_l3out_floating_svi.floating_svi_ip[each.value.secondary_address_id].id
+  addr                     = each.value.secondary_address
+}
+
+resource "aci_l3out_path_attachment_secondary_ip" "floating_svi_anchor_node_secondary_ipv6_address" {
+  for_each = { for addr in local.anchor_node_secondary_ipv6_address : addr.secondary_address_placeholder => addr }
+
+  l3out_path_attachment_dn = aci_l3out_floating_svi.floating_svi_ipv6[each.value.secondary_address_id].id
+  addr                     = each.value.secondary_address
+}
+
+resource "aci_bgp_peer_connectivity_profile" "bgp_peer_anchor_node_ip" {
+  for_each = { for bgp_peer in local.anchor_node_bgp_peer_ip_address : bgp_peer.bgp_peer_placeholder => bgp_peer }
+
+  parent_dn           = aci_l3out_floating_svi.floating_svi_ip[each.value.bgp_peer_id].id
+  addr                = each.value.bgp_peer.ip_address
+  addr_t_ctrl         = each.value.bgp_peer.address_control
+  allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
+  annotation          = each.value.bgp_peer.annotation
+  ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
+  name_alias          = each.value.bgp_peer.alias
+  password            = each.value.bgp_peer.password
+  peer_ctrl           = each.value.bgp_peer.peer_controls
+  private_a_sctrl     = each.value.bgp_peer.private_as_control
+  ttl                 = each.value.bgp_peer.ebgp_multihop_ttl
+  weight              = each.value.bgp_peer.weight
+  as_number           = each.value.bgp_peer.as_number
+  local_asn           = each.value.bgp_peer.local_asn
+  local_asn_propagate = each.value.bgp_peer.local_as_number_config
+  admin_state         = each.value.bgp_peer.admin_state
+
+  dynamic "relation_bgp_rs_peer_to_profile" {
+    for_each = { for control in local.anchor_node_bgp_peer_route_control_profiles_ip : control.control_placeholder => control.control if each.key == control.bgp_peer_placeholder }
+    content {
+      direction = relation_bgp_rs_peer_to_profile.value.direction
+      target_dn = relation_bgp_rs_peer_to_profile.value.target_dn
+    }
+  }
+}
+
+resource "aci_bgp_peer_connectivity_profile" "bgp_peer_anchor_node_ipv6" {
+  for_each = { for bgp_peer in local.anchor_node_bgp_peer_ipv6_address : bgp_peer.bgp_peer_placeholder => bgp_peer }
+
+  parent_dn           = aci_l3out_floating_svi.floating_svi_ipv6[each.value.bgp_peer_id].id
+  addr                = each.value.bgp_peer.ipv6_address
+  addr_t_ctrl         = each.value.bgp_peer.address_control
+  allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
+  annotation          = each.value.bgp_peer.annotation
+  ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
+  name_alias          = each.value.bgp_peer.alias
+  password            = each.value.bgp_peer.password
+  peer_ctrl           = each.value.bgp_peer.peer_controls
+  private_a_sctrl     = each.value.bgp_peer.private_as_control
+  ttl                 = each.value.bgp_peer.ebgp_multihop_ttl
+  weight              = each.value.bgp_peer.weight
+  as_number           = each.value.bgp_peer.as_number
+  local_asn           = each.value.bgp_peer.local_asn
+  local_asn_propagate = each.value.bgp_peer.local_as_number_config
+  admin_state         = each.value.bgp_peer.admin_state
+
+  dynamic "relation_bgp_rs_peer_to_profile" {
+    for_each = { for control in local.anchor_node_bgp_peer_route_control_profiles_ipv6 : control.control_placeholder => control.control if each.key == control.bgp_peer_placeholder }
+    content {
+      direction = relation_bgp_rs_peer_to_profile.value.direction
+      target_dn = relation_bgp_rs_peer_to_profile.value.target_dn
+    }
   }
 }
 

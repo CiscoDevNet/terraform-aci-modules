@@ -567,4 +567,92 @@ locals {
       }
     ]
   ]))
+
+  floating_svi_secondary_ip_address = (flatten([
+    for path in var.floating_svi.anchor_nodes : [
+      for secondary_address in(var.floating_svi.floating_secondary_ip_addresses == null) ? [] : var.floating_svi.floating_secondary_ip_addresses : {
+        secondary_address_id          = path.ip_address
+        secondary_address_placeholder = "[${secondary_address}]_[${path.ip_address}]"
+        secondary_address             = secondary_address
+      }
+      if path.ip_address != null
+    ]
+  ]))
+
+  floating_svi_secondary_ipv6_address = (flatten([
+    for path in var.floating_svi.anchor_nodes : [
+      for secondary_address in(var.floating_svi.floating_secondary_ipv6_addresses == null) ? [] : var.floating_svi.floating_secondary_ipv6_addresses : {
+        secondary_address_id          = path.ipv6_address
+        secondary_address_placeholder = "[${secondary_address}]_[${path.ipv6_address}]"
+        secondary_address             = secondary_address
+      }
+      if path.ipv6_address != null
+    ]
+  ]))
+
+  anchor_node_secondary_ip_address = (flatten([
+    for path in var.floating_svi.anchor_nodes : [
+      for secondary_address in(path.secondary_ip_addresses == null) ? [] : path.secondary_ip_addresses : {
+        secondary_address_id          = path.ip_address
+        secondary_address_placeholder = "[${secondary_address}]_[${path.ip_address}]"
+        secondary_address             = secondary_address
+      }
+      if path.ip_address != null
+    ]
+  ]))
+
+  anchor_node_secondary_ipv6_address = (flatten([
+    for path in var.floating_svi.anchor_nodes : [
+      for secondary_address in(path.secondary_ipv6_addresses == null) ? [] : path.secondary_ipv6_addresses : {
+        secondary_address_id          = path.ipv6_address
+        secondary_address_placeholder = "[${secondary_address}]_[${path.ipv6_address}]"
+        secondary_address             = secondary_address
+      }
+      if path.ipv6_address != null
+    ]
+  ]))
+
+  anchor_node_bgp_peer_ip_address = (flatten([
+    for path in var.floating_svi.anchor_nodes : [
+      for bgp_peer in(path.bgp_peers == null) ? [] : path.bgp_peers : {
+        bgp_peer_id          = path.ip_address
+        bgp_peer_placeholder = bgp_peer.ip_address
+        bgp_peer             = bgp_peer
+      }
+      if(bgp_peer.ip_address != null)
+    ]
+  ]))
+
+  anchor_node_bgp_peer_route_control_profiles_ip = (flatten([
+    for bgp in local.anchor_node_bgp_peer_ip_address : [
+      for control in(bgp.bgp_peer.route_control_profiles == null) ? [] : bgp.bgp_peer.route_control_profiles : {
+        control_id           = bgp.bgp_peer_id
+        control_placeholder  = "[${control.target_dn}]_[${control.direction}]_${bgp.bgp_peer_placeholder}"
+        bgp_peer_placeholder = bgp.bgp_peer_placeholder
+        control              = control
+      }
+    ]
+  ]))
+
+  anchor_node_bgp_peer_ipv6_address = (flatten([
+    for path in var.floating_svi.anchor_nodes : [
+      for bgp_peer in(path.bgp_peers == null) ? [] : path.bgp_peers : {
+        bgp_peer_id          = path.ipv6_address
+        bgp_peer_placeholder = bgp_peer.ipv6_address
+        bgp_peer             = bgp_peer
+      }
+      if(bgp_peer.ipv6_address != null)
+    ]
+  ]))
+
+  anchor_node_bgp_peer_route_control_profiles_ipv6 = (flatten([
+    for bgp in local.anchor_node_bgp_peer_ipv6_address : [
+      for control in(bgp.bgp_peer.route_control_profiles == null) ? [] : bgp.bgp_peer.route_control_profiles : {
+        control_id           = bgp.bgp_peer_id
+        control_placeholder  = "[${control.target_dn}]_[${control.direction}]_${bgp.bgp_peer_placeholder}"
+        bgp_peer_placeholder = bgp.bgp_peer_placeholder
+        control              = control
+      }
+    ]
+  ]))
 }

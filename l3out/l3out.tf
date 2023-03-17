@@ -372,7 +372,7 @@ resource "aci_l3out_path_attachment" "l3out_path" {
   annotation                   = each.value.path.annotation
   autostate                    = each.value.path.autostate
   ipv6_dad                     = each.value.path.ipv6_dad
-  ll_addr                      = each.value.path.link_local_addr
+  ll_addr                      = each.value.path.link_local_address
   mac                          = each.value.path.mac
   target_dscp                  = each.value.path.target_dscp
 }
@@ -390,7 +390,7 @@ resource "aci_l3out_floating_svi" "floating_svi" {
   encap_scope                  = each.value.float.encap_scope
   if_inst_t                    = "ext-svi"
   ipv6_dad                     = each.value.float.ipv6_dad
-  ll_addr                      = each.value.float.link_local_addr
+  ll_addr                      = each.value.float.link_local_address
   mac                          = each.value.float.mac
   mode                         = each.value.float.mode
   mtu                          = each.value.float.mtu

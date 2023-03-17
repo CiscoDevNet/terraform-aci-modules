@@ -408,23 +408,23 @@ variable "logical_node_profiles" {
           nd_policy_dn           = optional(string)
           paths = optional(list(object(
             {
-              interface_type  = string
-              path_type       = string
-              pod_id          = string
-              node_id         = string
-              node2_id        = optional(string)
-              interface_id    = string
-              ip_address      = optional(string)
-              mtu             = optional(string)
-              encap           = optional(string)
-              encap_scope     = optional(string)
-              mode            = optional(string)
-              annotation      = optional(string)
-              autostate       = optional(string)
-              ipv6_dad        = optional(string)
-              link_local_addr = optional(string)
-              mac             = optional(string)
-              target_dscp     = optional(string)
+              interface_type     = string
+              path_type          = string
+              pod_id             = string
+              node_id            = string
+              node2_id           = optional(string)
+              interface_id       = string
+              ip_address         = optional(string)
+              mtu                = optional(string)
+              encap              = optional(string)
+              encap_scope        = optional(string)
+              mode               = optional(string)
+              annotation         = optional(string)
+              autostate          = optional(string)
+              ipv6_dad           = optional(string)
+              link_local_address = optional(string)
+              mac                = optional(string)
+              target_dscp        = optional(string)
               bgp_peers = optional(list(object({
                 ip_address          = string
                 address_control     = optional(list(string))
@@ -488,20 +488,21 @@ variable "logical_node_profiles" {
           )))
           floating_svi = optional(list(object(
             {
-              pod_id          = string
-              node_id         = string
-              ip_address      = string
-              description     = optional(string)
-              mtu             = optional(string)
-              encap           = optional(string)
-              encap_scope     = optional(string)
-              mode            = optional(string)
-              annotation      = optional(string)
-              autostate       = optional(string)
-              ipv6_dad        = optional(string)
-              link_local_addr = optional(string)
-              mac             = optional(string)
-              target_dscp     = optional(string)
+              pod_id     = string
+              node_id    = string
+              ip_address = string
+              #secondary_ip_addresses = optional(list(string))
+              description        = optional(string)
+              mtu                = optional(string)
+              encap              = optional(string)
+              encap_scope        = optional(string)
+              mode               = optional(string)
+              annotation         = optional(string)
+              autostate          = optional(string)
+              ipv6_dad           = optional(string)
+              link_local_address = optional(string)
+              mac                = optional(string)
+              target_dscp        = optional(string)
               path_attributes = optional(list(object(
                 {
                   domain_dn           = string
@@ -572,24 +573,27 @@ variable "floating_svi" {
       vlan                              = optional(string)
       anchor_nodes = optional(list(object(
         {
-          pod_id          = string
-          node_id         = string
-          ip_address      = optional(string)
-          ipv6_address    = optional(string)
-          description     = optional(string)
-          mtu             = optional(string)
-          vlan            = optional(string)
-          encap_scope     = optional(string)
-          mode            = optional(string)
-          annotation      = optional(string)
-          autostate       = optional(string)
-          ipv6_dad        = optional(string)
-          link_local_addr = optional(string)
-          mac             = optional(string)
-          target_dscp     = optional(string)
+          pod_id                   = string
+          node_id                  = string
+          ip_address               = optional(string)
+          ipv6_address             = optional(string)
+          secondary_ip_addresses   = optional(list(string))
+          secondary_ipv6_addresses = optional(list(string))
+          description              = optional(string)
+          mtu                      = optional(string)
+          vlan                     = optional(string)
+          encap_scope              = optional(string)
+          mode                     = optional(string)
+          annotation               = optional(string)
+          autostate                = optional(string)
+          ipv6_dad                 = optional(string)
+          link_local_address       = optional(string)
+          mac                      = optional(string)
+          target_dscp              = optional(string)
           bgp_peers = optional(list(object(
             {
-              ip_address          = string
+              ip_address          = optional(string)
+              ipv6_address        = optional(string)
               address_control     = optional(list(string))
               allowed_self_as_cnt = optional(string)
               annotation          = optional(string)
@@ -624,11 +628,8 @@ variable "floating_svi" {
       )))
   })
   default = {
-    # domain_dn = null
-    # floating_ip = null
-    # floating_ipv6 = null
-    anchor_nodes       = []
-    loopback_as_source = true
+    anchor_nodes = []
+    #loopback_as_source = true
   }
 }
 
@@ -737,14 +738,13 @@ variable "nodes" {
       )))
       interfaces = optional(list(object(
         {
-          floating_svi = optional(bool)
-          svi          = optional(bool)
-          anchor_node  = optional(string)
-          port         = optional(string)
-          channel      = optional(string)
-          ip           = optional(string)
-          ipv6         = optional(string)
-          vlan         = optional(string)
+          svi         = optional(bool)
+          anchor_node = optional(string)
+          port        = optional(string)
+          channel     = optional(string)
+          ip          = optional(string)
+          ipv6        = optional(string)
+          vlan        = optional(string)
           bgp_peers = optional(list(object(
             {
               ip_address          = optional(string)

@@ -26,19 +26,59 @@ module "l3out" {
   }
 
   floating_svi = {
-    domain_dn        = aci_physical_domain.physical_domain.id
-    floating_ip      = "19.1.2.1/24"
-    floating_ipv6    = "2001:db1:a::15/64"
-    vlan             = "5"
-    forged_transmit  = false
-    mac_change       = false
-    promiscuous_mode = false
+    domain_dn                         = aci_physical_domain.physical_domain.id
+    floating_ip                       = "19.1.2.1/24"
+    floating_ipv6                     = "2001:db1:a::15/64"
+    floating_secondary_ip_addresses   = ["19.1.23.1/24", "19.1.23.2/24", "19.1.23.3/24"]
+    floating_secondary_ipv6_addresses = ["2001:db2:a::15/64", "2001:db3:a::15/64", "2001:db4:a::15/64"]
+    vlan                              = "5"
     anchor_nodes = [
       {
-        pod_id     = "1"
-        node_id    = "110"
-        ip_address = "19.1.1.18/24"
-        vlan       = "1"
+        pod_id                 = "1"
+        node_id                = "110"
+        ip_address             = "19.1.1.18/24"
+        secondary_ip_addresses = ["19.2.1.18/24", "19.3.1.18/24", "19.4.1.18/24"]
+        vlan                   = "1"
+        bgp_peers = [
+          {
+            ip_address          = "19.2.1.18"
+            address_control     = ["af-mcast", "af-ucast"]
+            allowed_self_as_cnt = "1"
+            bgp_controls = {
+              send_com = true
+            }
+            peer_controls      = ["bfd"]
+            private_as_control = ["remove-all", "remove-exclusive"]
+            admin_state        = "enabled"
+            route_control_profiles = [
+              {
+                direction = "export"
+                target_dn = aci_route_control_profile.profile2.id
+              },
+              {
+                direction = "import"
+                target_dn = aci_route_control_profile.profile1.id
+              }
+            ]
+          },
+          {
+            ip_address          = "19.3.1.18"
+            address_control     = ["af-mcast", "af-ucast"]
+            allowed_self_as_cnt = "1"
+            bgp_controls = {
+              send_com = true
+            }
+            peer_controls      = ["bfd"]
+            private_as_control = ["remove-all", "remove-exclusive"]
+            admin_state        = "enabled"
+            route_control_profiles = [
+              {
+                direction = "export"
+                target_dn = aci_route_control_profile.profile2.id
+              }
+            ]
+          },
+        ]
       },
       {
         pod_id     = "1"
@@ -47,102 +87,202 @@ module "l3out" {
         vlan       = "1"
       },
       {
-        pod_id       = "1"
-        node_id      = "112"
-        ipv6_address = "2001:db1:a::16/64"
-        vlan         = "1"
+        pod_id             = "1"
+        node_id            = "112"
+        ipv6_address       = "2001:db1:a::16/64"
+        link_local_address = "fe80::19"
+        vlan               = "1"
       },
       {
-        pod_id       = "1"
-        node_id      = "113"
-        ipv6_address = "2001:db1:a::17/64"
-        vlan         = "1"
+        pod_id             = "1"
+        node_id            = "113"
+        ipv6_address       = "2001:db1:a::17/64"
+        link_local_address = "fe80::20"
+        vlan               = "1"
+      },
+      {
+        pod_id                   = "1"
+        node_id                  = "114"
+        ip_address               = "19.1.1.21/24"
+        ipv6_address             = "2001:db1:a::18/64"
+        secondary_ip_addresses   = ["19.2.1.21/24", "19.3.1.21/24", "19.4.1.21/24"]
+        secondary_ipv6_addresses = ["2001:db2:a::18/64", "2001:db3:a::18/64", "2001:db4:a::18/64"]
+        vlan                     = "1"
+        bgp_peers = [
+          {
+            ipv6_address        = "2001:db1:a::24/64"
+            address_control     = ["af-mcast", "af-ucast"]
+            allowed_self_as_cnt = "1"
+            bgp_controls = {
+              send_com = true
+            }
+            peer_controls      = ["bfd"]
+            private_as_control = ["remove-all", "remove-exclusive"]
+            admin_state        = "enabled"
+            route_control_profiles = [
+              {
+                direction = "export"
+                target_dn = aci_route_control_profile.profile2.id
+              },
+              {
+                direction = "import"
+                target_dn = aci_route_control_profile.profile1.id
+              }
+            ]
+          },
+        ]
+      },
+      {
+        pod_id                   = "1"
+        node_id                  = "115"
+        ip_address               = "19.1.1.22/24"
+        ipv6_address             = "2001:db1:a::19/64"
+        secondary_ipv6_addresses = ["2001:db2:a::19/64", "2001:db3:a::19/64", "2001:db4:a::19/64"]
+        link_local_address       = "fe80::21"
+        vlan                     = "5"
+        bgp_peers = [
+          {
+            ip_address          = "19.2.1.21"
+            address_control     = ["af-mcast", "af-ucast"]
+            allowed_self_as_cnt = "1"
+            bgp_controls = {
+              send_com = true
+            }
+            peer_controls      = ["bfd"]
+            private_as_control = ["remove-all", "remove-exclusive"]
+            admin_state        = "enabled"
+            route_control_profiles = [
+              {
+                direction = "export"
+                target_dn = aci_route_control_profile.profile2.id
+              },
+              {
+                direction = "import"
+                target_dn = aci_route_control_profile.profile1.id
+              }
+            ]
+          },
+          {
+            ipv6_address        = "2001:db1:a::25/64"
+            address_control     = ["af-mcast", "af-ucast"]
+            allowed_self_as_cnt = "1"
+            bgp_controls = {
+              send_com = true
+            }
+            peer_controls      = ["bfd"]
+            private_as_control = ["remove-all", "remove-exclusive"]
+            admin_state        = "enabled"
+            route_control_profiles = [
+              {
+                direction = "export"
+                target_dn = aci_route_control_profile.profile2.id
+              }
+            ]
+          },
+          {
+            ip_address          = "19.3.1.21"
+            address_control     = ["af-mcast", "af-ucast"]
+            allowed_self_as_cnt = "1"
+            bgp_controls = {
+              send_com = true
+            }
+            peer_controls      = ["bfd"]
+            private_as_control = ["remove-all", "remove-exclusive"]
+            admin_state        = "enabled"
+            route_control_profiles = [
+              {
+                direction = "export"
+                target_dn = aci_route_control_profile.profile2.id
+              }
+            ]
+          },
+        ]
       },
     ]
   }
 
   bgp_peers = [
+    {
+      # loopback_as_source = true
+      ip_address          = "10.1.1.11"
+      address_control     = ["af-mcast", "af-ucast"]
+      allowed_self_as_cnt = "1"
+      bgp_controls = {
+        send_com = true
+      }
+      peer_controls      = ["bfd"]
+      private_as_control = ["remove-all", "remove-exclusive"]
+      admin_state        = "enabled"
+      route_control_profiles = [
         {
-          # loopback_as_source = true
-          ip_address          = "10.1.1.11"
-          address_control     = ["af-mcast", "af-ucast"]
-          allowed_self_as_cnt = "1"
-          bgp_controls = {
-            send_com = true
-          }
-          peer_controls      = ["bfd"]
-          private_as_control = ["remove-all", "remove-exclusive"]
-          admin_state        = "enabled"
-          route_control_profiles = [
-            {
-              direction = "export"
-              target_dn = aci_route_control_profile.profile2.id
-            },
-            {
-              direction = "import"
-              target_dn = aci_route_control_profile.profile1.id
-            }
-          ]
+          direction = "export"
+          target_dn = aci_route_control_profile.profile2.id
         },
         {
-          # loopback_as_source = true
-          ip_address          = "10.1.1.12"
-          address_control     = ["af-mcast", "af-ucast"]
-          allowed_self_as_cnt = "1"
-          bgp_controls = {
-            send_com = true
-          }
-          peer_controls      = ["bfd"]
-          private_as_control = ["remove-all", "remove-exclusive"]
-          admin_state        = "enabled"
-          route_control_profiles = [
-            {
-              direction = "export"
-              target_dn = aci_route_control_profile.profile2.id
-            },
-            {
-              direction = "import"
-              target_dn = aci_route_control_profile.profile1.id
-            }
-          ]
-        },
-        {
-          //loopback_as_source = false
-          ip_address          = "10.1.1.13"
-          address_control     = ["af-mcast", "af-ucast"]
-          allowed_self_as_cnt = "1"
-          bgp_controls = {
-            send_com = true
-          }
-          peer_controls      = ["bfd"]
-          private_as_control = ["remove-all", "remove-exclusive"]
-          admin_state        = "enabled"
-          route_control_profiles = [
-            {
-              direction = "export"
-              target_dn = aci_route_control_profile.profile2.id
-            }
-          ]
-        },
-        {
-          //loopback_as_source = false
-          ipv6_address          = "2001:db1:a::9/64"
-          address_control     = ["af-mcast", "af-ucast"]
-          allowed_self_as_cnt = "1"
-          bgp_controls = {
-            send_com = true
-          }
-          peer_controls      = ["bfd"]
-          private_as_control = ["remove-all", "remove-exclusive"]
-          admin_state        = "enabled"
-          route_control_profiles = [
-            {
-              direction = "export"
-              target_dn = aci_route_control_profile.profile2.id
-            }
-          ]
-        },
+          direction = "import"
+          target_dn = aci_route_control_profile.profile1.id
+        }
       ]
+    },
+    {
+      # loopback_as_source = true
+      ip_address          = "10.1.1.12"
+      address_control     = ["af-mcast", "af-ucast"]
+      allowed_self_as_cnt = "1"
+      bgp_controls = {
+        send_com = true
+      }
+      peer_controls      = ["bfd"]
+      private_as_control = ["remove-all", "remove-exclusive"]
+      admin_state        = "enabled"
+      route_control_profiles = [
+        {
+          direction = "export"
+          target_dn = aci_route_control_profile.profile2.id
+        },
+        {
+          direction = "import"
+          target_dn = aci_route_control_profile.profile1.id
+        }
+      ]
+    },
+    {
+      //loopback_as_source = false
+      ip_address          = "10.1.1.13"
+      address_control     = ["af-mcast", "af-ucast"]
+      allowed_self_as_cnt = "1"
+      bgp_controls = {
+        send_com = true
+      }
+      peer_controls      = ["bfd"]
+      private_as_control = ["remove-all", "remove-exclusive"]
+      admin_state        = "enabled"
+      route_control_profiles = [
+        {
+          direction = "export"
+          target_dn = aci_route_control_profile.profile2.id
+        }
+      ]
+    },
+    {
+      //loopback_as_source = false
+      ipv6_address        = "2001:db1:a::9/64"
+      address_control     = ["af-mcast", "af-ucast"]
+      allowed_self_as_cnt = "1"
+      bgp_controls = {
+        send_com = true
+      }
+      peer_controls      = ["bfd"]
+      private_as_control = ["remove-all", "remove-exclusive"]
+      admin_state        = "enabled"
+      route_control_profiles = [
+        {
+          direction = "export"
+          target_dn = aci_route_control_profile.profile2.id
+        }
+      ]
+    },
+  ]
 
   nodes = [
     {
@@ -182,7 +322,6 @@ module "l3out" {
           ]
         }
       ]
-      //bgp_peers = [push to node as default...or all interfaces in this node]
       interfaces = [
         {
           port = "1/11"
