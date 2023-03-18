@@ -103,33 +103,20 @@ resource "aci_l3out_path_attachment" "dynamic_l3out_path_ipv6" {
   encap                        = each.value.path.vlan != null ? "vlan-${each.value.path.vlan}" : null
 }
 
-# resource "aci_l3out_path_attachment_secondary_ip" "secondary_ip_addr" {
-#   for_each = { for addr in local.secondary_address : addr.secondary_address_placeholder => addr }
+resource "aci_l3out_path_attachment_secondary_ip" "secondary_ip_address" {
+  for_each = { for addr in local.secondary_address_interface_ip : addr.address_placeholder => addr }
 
-#   l3out_path_attachment_dn = aci_l3out_path_attachment.l3out_path[each.value.secondary_address_id].id
-#   addr                     = each.value.secondary_address.ip_address
-#   ipv6_dad                 = each.value.secondary_address.ipv6_dad
-#}
+  l3out_path_attachment_dn = compact([for id, path in local.ip : (each.value.address_id == path.path_placeholder) ? aci_l3out_path_attachment.dynamic_l3out_path_ip[id].id : ""])[0]
+  addr                     = each.value.address
+}
 
-# resource "aci_l3out_floating_svi" "floating_svi_ip" {
-#   for_each = { for idx, path in local.ip : idx => path if path.path.anchor_node != null }
+resource "aci_l3out_path_attachment_secondary_ip" "secondary_ipv6_address" {
+  for_each = { for addr in local.secondary_address_interface_ipv6 : addr.address_placeholder => addr }
 
-#   logical_interface_profile_dn = compact([for id in range(length(var.nodes)) : (each.value.node_id == var.nodes[id].node_id) ? aci_logical_interface_profile.dynamic_logical_interface_profile_ip[id].id : ""])[0]
-#   node_dn                      = join("", ["topology/pod-${each.value.pod_id}/node-", split("_${each.value.node_id}", "${each.value.path_placeholder}")[0]])
-#   encap                        = "vlan-${each.value.path.vlan}"
-#   addr                         = each.value.path.ip
-#   if_inst_t                    = "ext-svi"
-# }
-
-# resource "aci_l3out_floating_svi" "floating_svi_ipv6" {
-#   for_each = { for idx, path in local.ipv6 : idx => path if path.path.anchor_node != null }
-
-#   logical_interface_profile_dn = compact([for id in range(length(var.nodes)) : (each.value.node_id == var.nodes[id].node_id) ? aci_logical_interface_profile.dynamic_logical_interface_profile_ipv6[id].id : ""])[0]
-#   node_dn                      = join("", ["topology/pod-${each.value.pod_id}/node-", split("_${each.value.node_id}", "${each.value.path_placeholder}")[0]])
-#   encap                        = "vlan-${each.value.path.vlan}"
-#   addr                         = each.value.path.ipv6
-#   if_inst_t                    = "ext-svi"
-# }
+  l3out_path_attachment_dn = compact([for id, path in local.ipv6 : (each.value.address_id == path.path_placeholder) ? aci_l3out_path_attachment.dynamic_l3out_path_ipv6[id].id : ""])[0]
+  addr                     = each.value.address
+  ipv6_dad                 = "disabled"
+}
 
 resource "aci_bgp_peer_connectivity_profile" "node_bgp_peers_global" {
   for_each = { for bgp_peer in local.bgp_peer_global_to_node : bgp_peer.bgp_peer_placeholder => bgp_peer }

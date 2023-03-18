@@ -524,6 +524,26 @@ locals {
     ]
   ]))
 
+  secondary_address_interface_ip = (flatten([
+    for elements in local.ip : [
+      for address in(elements.path.secondary_ip_addresses == null) ? [] : elements.path.secondary_ip_addresses : {
+        address_id          = elements.path_placeholder
+        address_placeholder = "[${address}]_${elements.path_placeholder}"
+        address             = address
+      }
+    ]
+  ]))
+
+  secondary_address_interface_ipv6 = (flatten([
+    for elements in local.ipv6 : [
+       for address in(elements.path.secondary_ipv6_addresses == null) ? [] : elements.path.secondary_ipv6_addresses : {
+        address_id          = elements.path_placeholder
+        address_placeholder = "[${address}]_${elements.path_placeholder}"
+        address             = address
+      }
+    ]
+  ]))
+
   bgp_peers_interface_ip = (flatten([
     for elements in local.ip : [
       for bgp_peer in(elements.path.bgp_peers == null) ? [] : elements.path.bgp_peers : {

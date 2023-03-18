@@ -324,9 +324,11 @@ module "l3out" {
       ]
       interfaces = [
         {
-          port = "1/11"
-          ip   = "14.14.15.1/24"
-          ipv6 = "2001:db8:e::2/64"
+          port                     = "1/11"
+          ip                       = "14.14.15.1/24"
+          ipv6                     = "2001:db8:e::2/64"
+          secondary_ip_addresses   = ["14.15.15.1/24", "14.16.15.1/24", "14.17.15.1/24"]
+          secondary_ipv6_addresses = ["2001:db8:e::3/64", "2001:db8:e::4/64", "2001:db8:e::5/64"]
           bgp_peers = [
             {
               ip_address          = "10.1.1.25"
@@ -365,18 +367,21 @@ module "l3out" {
           svi  = true
         },
         {
-          channel = "channel-one"
-          ip      = "14.14.14.1/24"
+          channel                = "channel-one"
+          ip                     = "14.14.14.1/24"
+          secondary_ip_addresses = ["14.15.14.1/24", "14.16.14.1/24", "14.17.14.1/24"]
         },
         {
           channel = "channel-two"
           ip      = "14.1.16.2/24"
+          secondary_ip_addresses   = ["14.2.16.2/24", "14.3.16.2/24", "14.4.16.2/24"]
           vlan    = "2"
 
         },
         {
           channel = "channel-three"
           ip      = "172.16.103.3/24"
+          secondary_ip_addresses   = ["172.17.103.3/24", "172.18.103.3/24", "172.19.103.3/24"]
           vlan    = "2"
           svi     = true
         },
@@ -597,9 +602,11 @@ module "l3out" {
       ]
       interfaces = [
         {
-          port = "1/11"
-          ip   = "14.14.21.1/24"
-          ipv6 = "2001:db9:b::2/64"
+          port                     = "1/11"
+          ip                       = "14.14.21.1/24"
+          ipv6                     = "2001:db9:b::2/64"
+          secondary_ip_addresses   = ["14.15.21.1/24", "14.16.21.1/24", "14.17.21.1/24"]
+          secondary_ipv6_addresses = ["2001:db9:b::3/64", "2001:db9:b::4/64", "2001:db9:b::5/64"]
           bgp_peers = [
             {
               ip_address          = "10.1.1.87"
@@ -757,8 +764,9 @@ module "l3out" {
           svi     = true
         },
         {
-          channel = "channel-six"
-          ipv6    = "2001:db8:a::3/64"
+          channel                  = "channel-six"
+          ipv6                     = "2001:db8:a::3/64"
+          secondary_ipv6_addresses = ["2001:db8:a::4/64", "2001:db8:a::5/64", "2001:db8:a::6/64"]
         },
       ]
     },

@@ -744,6 +744,8 @@ variable "nodes" {
           channel     = optional(string)
           ip          = optional(string)
           ipv6        = optional(string)
+          secondary_ip_addresses   = optional(list(string))
+          secondary_ipv6_addresses = optional(list(string))
           vlan        = optional(string)
           bgp_peers = optional(list(object(
             {
