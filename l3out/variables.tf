@@ -465,6 +465,7 @@ variable "logical_node_profiles" {
               )))
               side_A = optional(object({
                 ip_address = string
+                link_local_address = optional(string)
                 secondary_addresses = optional(list(object(
                   {
                     ip_address = string
@@ -476,6 +477,7 @@ variable "logical_node_profiles" {
               side_B = optional(object(
                 {
                   ip_address = string
+                  link_local_address = optional(string)
                   secondary_addresses = optional(list(object(
                     {
                       ip_address = string
@@ -558,6 +560,137 @@ variable "logical_node_profiles" {
     error_message = "Valid values for target_dscp in logical_node_profiles are (CS0, CS1, AF11, AF12, AF13, CS2, AF21, AF22, AF23, CS3, CS4, CS5, CS6, CS7, AF31, AF32, AF33, AF41, AF42, AF43, VA, EF, unspecified)"
   }
 }
+
+variable "vpcs" {
+  type = list(object(
+    {
+    pod_id             = optional(string)
+    nodes = optional(list(object(
+    {
+      node_id            = optional(string)
+      router_id          = optional(string)
+      router_id_loopback = optional(string)
+      loopback_address   = optional(string)
+      }
+      )))
+      interfaces = optional(list(object(
+        {
+          channel     = optional(string)
+          vlan        = optional(string)
+        side_a = object(
+          {
+          ip          = optional(string)
+          ipv6        = optional(string)
+          link_local_address = optional(string)
+          secondary_ip_addresses   = optional(list(string))
+          secondary_ipv6_addresses = optional(list(string))
+          })
+        side_b = object(
+          {
+          ip          = optional(string)
+          ipv6        = optional(string)
+          link_local_address = optional(string)
+          secondary_ip_addresses   = optional(list(string))
+          secondary_ipv6_addresses = optional(list(string))
+        })
+          bgp_peers = optional(list(object(
+            {
+              ip_address          = optional(string)
+              ipv6_address        = optional(string)
+              address_control     = optional(list(string))
+              allowed_self_as_cnt = optional(string)
+              annotation          = optional(string)
+              bgp_controls = optional(object(
+                {
+                  allow_self_as     = optional(bool)
+                  as_override       = optional(bool)
+                  dis_peer_as_check = optional(bool)
+                  nh_self           = optional(bool)
+                  send_com          = optional(bool)
+                  send_ext_com      = optional(bool)
+                }
+              ))
+              alias                  = optional(string)
+              password               = optional(string)
+              peer_controls          = optional(list(string))
+              private_as_control     = optional(list(string))
+              ebgp_multihop_ttl      = optional(string)
+              weight                 = optional(string)
+              as_number              = optional(string)
+              local_asn              = optional(string)
+              local_as_number_config = optional(string)
+              admin_state            = optional(string)
+              route_control_profiles = optional(list(object({
+                direction = string
+                target_dn = string
+                }
+              )))
+            }
+          )))
+        }
+      )))
+      static_routes = optional(list(object(
+        {
+          prefix              = string
+          fallback_preference = optional(string)
+          route_control       = optional(bool)
+          track_policy        = optional(string)
+          next_hop_addresses = optional(list(object(
+            {
+              next_hop_ip           = string
+              preference            = optional(string)
+              next_hop_profile_type = optional(string)
+              track_member          = optional(string)
+              track_policy          = optional(string)
+
+            }
+          )))
+        }
+          )))
+        bgp_peers = optional(list(object(
+        {
+          loopback_as_source  = optional(bool)
+          ip_address          = optional(string)
+          ipv6_address        = optional(string)
+          address_control     = optional(list(string))
+          allowed_self_as_cnt = optional(string)
+          annotation          = optional(string)
+          bgp_controls = optional(object(
+            {
+              allow_self_as     = optional(bool)
+              as_override       = optional(bool)
+              dis_peer_as_check = optional(bool)
+              nh_self           = optional(bool)
+              send_com          = optional(bool)
+              send_ext_com      = optional(bool)
+            }
+          ))
+          alias                  = optional(string)
+          password               = optional(string)
+          peer_controls          = optional(list(string))
+          private_as_control     = optional(list(string))
+          ebgp_multihop_ttl      = optional(string)
+          weight                 = optional(string)
+          as_number              = optional(string)
+          local_asn              = optional(string)
+          local_as_number_config = optional(string)
+          admin_state            = optional(string)
+          route_control_profiles = optional(list(object({
+            direction = string
+            target_dn = string
+            }
+          )))
+        }
+      )))
+    }
+  
+  ))
+  default = [
+    {
+      loopback_as_source = true
+  }]
+}
+        
 
 variable "floating_svi" {
   type = object(
@@ -744,6 +877,7 @@ variable "nodes" {
           channel     = optional(string)
           ip          = optional(string)
           ipv6        = optional(string)
+          link_local_address = optional(string)
           secondary_ip_addresses   = optional(list(string))
           secondary_ipv6_addresses = optional(list(string))
           vlan        = optional(string)

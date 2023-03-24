@@ -458,6 +458,7 @@ resource "aci_l3out_vpc_member" "side_A" {
   leaf_port_dn = aci_l3out_path_attachment.l3out_path[each.value.address_A_id].id
   side         = "A"
   addr         = each.value.address_A.ip_address
+  ll_addr      = each.value.address_A.link_local_address
 }
 
 resource "aci_l3out_vpc_member" "side_B" {
@@ -466,6 +467,7 @@ resource "aci_l3out_vpc_member" "side_B" {
   leaf_port_dn = aci_l3out_path_attachment.l3out_path[each.value.address_B_id].id
   side         = "B"
   addr         = each.value.address_B.ip_address
+  ll_addr      = each.value.address_B.link_local_address
 }
 
 resource "aci_l3out_path_attachment_secondary_ip" "secondary_ip_addr_A" {
