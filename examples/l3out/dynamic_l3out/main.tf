@@ -643,9 +643,9 @@ module "l3out" {
         vlan                   = "1"
         autostate              = "disabled"
         encap_scope            = "local"
-        mode        = "regular"
-        mtu         = "inherit"
-        target_dscp = "EF"
+        mode                   = "regular"
+        mtu                    = "inherit"
+        target_dscp            = "EF"
         bgp_peers = [
           {
             ip_address          = "19.2.1.18"

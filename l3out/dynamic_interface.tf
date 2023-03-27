@@ -488,7 +488,7 @@ resource "aci_bgp_peer_connectivity_profile" "bgp_peer_anchor_node_ipv6" {
 }
 
 resource "aci_logical_node_profile" "vpc_dynamic_logical_node_profile" {
-  for_each = { for vpc in local.vpc_logical_nodes : vpc.logical_node_name => vpc }
+  for_each = { for vpc in local.vpc_logical_nodes : vpc.logical_node_name => vpc if vpc.logical_node_name != null }
 
   l3_outside_dn = aci_l3_outside.l3out.id
   name          = each.key
@@ -765,6 +765,93 @@ resource "aci_bgp_peer_connectivity_profile" "vpc_interfaces_bgp_peer_from_globa
 
   dynamic "relation_bgp_rs_peer_to_profile" {
     for_each = { for control in local.vpc_bgp_peer_route_control_profiles_global_to_interface_ipv6 : control.control_placeholder => control.control if each.value.bgp_peer_placeholder == control.bgp_peer_placeholder }
+    content {
+      direction = relation_bgp_rs_peer_to_profile.value.direction
+      target_dn = relation_bgp_rs_peer_to_profile.value.target_dn
+    }
+  }
+}
+
+resource "aci_bgp_peer_connectivity_profile" "global_vpc_node_bgp_peers" {
+  for_each = { for bgp_peer in local.bgp_peer_global_to_vpc_nodes : bgp_peer.bgp_peer_placeholder => bgp_peer }
+
+  parent_dn           = aci_logical_node_profile.vpc_dynamic_logical_node_profile[each.value.logical_node_name].id
+  addr                = each.value.bgp_peer.ip_address != null ? each.value.bgp_peer.ip_address : each.value.bgp_peer.ipv6_address
+  addr_t_ctrl         = each.value.bgp_peer.address_control
+  allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
+  annotation          = each.value.bgp_peer.annotation
+  ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
+  name_alias          = each.value.bgp_peer.alias
+  password            = each.value.bgp_peer.password
+  peer_ctrl           = each.value.bgp_peer.peer_controls
+  private_a_sctrl     = each.value.bgp_peer.private_as_control
+  ttl                 = each.value.bgp_peer.ebgp_multihop_ttl
+  weight              = each.value.bgp_peer.weight
+  as_number           = each.value.bgp_peer.as_number
+  local_asn           = each.value.bgp_peer.local_asn
+  local_asn_propagate = each.value.bgp_peer.local_as_number_config
+  admin_state         = each.value.bgp_peer.admin_state
+
+  dynamic "relation_bgp_rs_peer_to_profile" {
+    for_each = { for control in local.bgp_peer_route_control_profiles_global_to_vpc_nodes : control.control_placeholder => control.control if each.key == control.bgp_peer_placeholder }
+    content {
+      direction = relation_bgp_rs_peer_to_profile.value.direction
+      target_dn = relation_bgp_rs_peer_to_profile.value.target_dn
+    }
+  }
+}
+
+resource "aci_bgp_peer_connectivity_profile" "global_vpc_interfaces_bgp_peer_ip" {
+  for_each = { for bgp_peer in local.bgp_peer_global_to_interface_ip_vpc : bgp_peer.bgp_peer_placeholder => bgp_peer }
+
+  parent_dn           = aci_l3out_path_attachment.vpc_l3out_path_ip[each.value.bgp_peer_id].id
+  addr                = each.value.bgp_peer.ip_address
+  addr_t_ctrl         = each.value.bgp_peer.address_control
+  allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
+  annotation          = each.value.bgp_peer.annotation
+  ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
+  name_alias          = each.value.bgp_peer.alias
+  password            = each.value.bgp_peer.password
+  peer_ctrl           = each.value.bgp_peer.peer_controls
+  private_a_sctrl     = each.value.bgp_peer.private_as_control
+  ttl                 = each.value.bgp_peer.ebgp_multihop_ttl
+  weight              = each.value.bgp_peer.weight
+  as_number           = each.value.bgp_peer.as_number
+  local_asn           = each.value.bgp_peer.local_asn
+  local_asn_propagate = each.value.bgp_peer.local_as_number_config
+  admin_state         = each.value.bgp_peer.admin_state
+
+  dynamic "relation_bgp_rs_peer_to_profile" {
+    for_each = { for control in local.bgp_peer_global_route_control_profiles_interface_ip_vpc : control.control_placeholder => control.control if each.value.bgp_peer_placeholder == control.bgp_peer_placeholder }
+    content {
+      direction = relation_bgp_rs_peer_to_profile.value.direction
+      target_dn = relation_bgp_rs_peer_to_profile.value.target_dn
+    }
+  }
+}
+
+resource "aci_bgp_peer_connectivity_profile" "global_vpc_interfaces_bgp_peer_ipv6" {
+  for_each = { for bgp_peer in local.bgp_peer_global_to_interface_ipv6_vpc : bgp_peer.bgp_peer_placeholder => bgp_peer }
+
+  parent_dn           = aci_l3out_path_attachment.vpc_l3out_path_ipv6[each.value.bgp_peer_id].id
+  addr                = each.value.bgp_peer.ipv6_address
+  addr_t_ctrl         = each.value.bgp_peer.address_control
+  allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
+  annotation          = each.value.bgp_peer.annotation
+  ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
+  name_alias          = each.value.bgp_peer.alias
+  password            = each.value.bgp_peer.password
+  peer_ctrl           = each.value.bgp_peer.peer_controls
+  private_a_sctrl     = each.value.bgp_peer.private_as_control
+  ttl                 = each.value.bgp_peer.ebgp_multihop_ttl
+  weight              = each.value.bgp_peer.weight
+  as_number           = each.value.bgp_peer.as_number
+  local_asn           = each.value.bgp_peer.local_asn
+  local_asn_propagate = each.value.bgp_peer.local_as_number_config
+  admin_state         = each.value.bgp_peer.admin_state
+
+  dynamic "relation_bgp_rs_peer_to_profile" {
+    for_each = { for control in local.bgp_peer_route_control_profiles_global_to_interface_ipv6_vpc : control.control_placeholder => control.control if each.value.bgp_peer_placeholder == control.bgp_peer_placeholder }
     content {
       direction = relation_bgp_rs_peer_to_profile.value.direction
       target_dn = relation_bgp_rs_peer_to_profile.value.target_dn

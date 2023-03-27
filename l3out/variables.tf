@@ -464,7 +464,7 @@ variable "logical_node_profiles" {
                 }
               )))
               side_A = optional(object({
-                ip_address = string
+                ip_address         = string
                 link_local_address = optional(string)
                 secondary_addresses = optional(list(object(
                   {
@@ -476,7 +476,7 @@ variable "logical_node_profiles" {
               ))
               side_B = optional(object(
                 {
-                  ip_address = string
+                  ip_address         = string
                   link_local_address = optional(string)
                   secondary_addresses = optional(list(object(
                     {
@@ -490,21 +490,21 @@ variable "logical_node_profiles" {
           )))
           floating_svi = optional(list(object(
             {
-              pod_id     = string
-              node_id    = string
-              ip_address = string
-              #secondary_ip_addresses = optional(list(string))
-              description        = optional(string)
-              mtu                = optional(string)
-              encap              = optional(string)
-              encap_scope        = optional(string)
-              mode               = optional(string)
-              annotation         = optional(string)
-              autostate          = optional(string)
-              ipv6_dad           = optional(string)
-              link_local_address = optional(string)
-              mac                = optional(string)
-              target_dscp        = optional(string)
+              pod_id              = string
+              node_id             = string
+              ip_address          = string
+              secondary_addresses = optional(list(string))
+              description         = optional(string)
+              mtu                 = optional(string)
+              encap               = optional(string)
+              encap_scope         = optional(string)
+              mode                = optional(string)
+              annotation          = optional(string)
+              autostate           = optional(string)
+              ipv6_dad            = optional(string)
+              link_local_address  = optional(string)
+              mac                 = optional(string)
+              target_dscp         = optional(string)
               path_attributes = optional(list(object(
                 {
                   domain_dn           = string
@@ -564,35 +564,35 @@ variable "logical_node_profiles" {
 variable "vpcs" {
   type = list(object(
     {
-    pod_id             = optional(string)
-    nodes = optional(list(object(
-    {
-      node_id            = optional(string)
-      router_id          = optional(string)
-      router_id_loopback = optional(string)
-      loopback_address   = optional(string)
-      }
+      pod_id = optional(string)
+      nodes = optional(list(object(
+        {
+          node_id            = optional(string)
+          router_id          = optional(string)
+          router_id_loopback = optional(string)
+          loopback_address   = optional(string)
+        }
       )))
       interfaces = optional(list(object(
         {
-          channel     = optional(string)
-          vlan        = optional(string)
-        side_a = object(
-          {
-          ip          = optional(string)
-          ipv6        = optional(string)
-          link_local_address = optional(string)
-          secondary_ip_addresses   = optional(list(string))
-          secondary_ipv6_addresses = optional(list(string))
+          channel = optional(string)
+          vlan    = optional(string)
+          side_a = object(
+            {
+              ip                       = optional(string)
+              ipv6                     = optional(string)
+              link_local_address       = optional(string)
+              secondary_ip_addresses   = optional(list(string))
+              secondary_ipv6_addresses = optional(list(string))
           })
-        side_b = object(
-          {
-          ip          = optional(string)
-          ipv6        = optional(string)
-          link_local_address = optional(string)
-          secondary_ip_addresses   = optional(list(string))
-          secondary_ipv6_addresses = optional(list(string))
-        })
+          side_b = object(
+            {
+              ip                       = optional(string)
+              ipv6                     = optional(string)
+              link_local_address       = optional(string)
+              secondary_ip_addresses   = optional(list(string))
+              secondary_ipv6_addresses = optional(list(string))
+          })
           bgp_peers = optional(list(object(
             {
               ip_address          = optional(string)
@@ -646,8 +646,8 @@ variable "vpcs" {
             }
           )))
         }
-          )))
-        bgp_peers = optional(list(object(
+      )))
+      bgp_peers = optional(list(object(
         {
           loopback_as_source  = optional(bool)
           ip_address          = optional(string)
@@ -683,14 +683,14 @@ variable "vpcs" {
         }
       )))
     }
-  
+
   ))
   default = [
     {
+      nodes              = []
       loopback_as_source = true
   }]
 }
-        
 
 variable "floating_svi" {
   type = object(
@@ -762,7 +762,6 @@ variable "floating_svi" {
   })
   default = {
     anchor_nodes = []
-    #loopback_as_source = true
   }
 }
 
@@ -871,16 +870,16 @@ variable "nodes" {
       )))
       interfaces = optional(list(object(
         {
-          svi         = optional(bool)
-          anchor_node = optional(string)
-          port        = optional(string)
-          channel     = optional(string)
-          ip          = optional(string)
-          ipv6        = optional(string)
-          link_local_address = optional(string)
+          svi                      = optional(bool)
+          anchor_node              = optional(string)
+          port                     = optional(string)
+          channel                  = optional(string)
+          ip                       = optional(string)
+          ipv6                     = optional(string)
+          link_local_address       = optional(string)
           secondary_ip_addresses   = optional(list(string))
           secondary_ipv6_addresses = optional(list(string))
-          vlan        = optional(string)
+          vlan                     = optional(string)
           bgp_peers = optional(list(object(
             {
               ip_address          = optional(string)

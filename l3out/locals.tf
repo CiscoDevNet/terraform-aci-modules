@@ -263,6 +263,16 @@ locals {
     ]
   ]))
 
+  floating_svi_secondary_address = (flatten([
+    for elements in local.floating_svi : [
+      for secondary_address in(elements.float.secondary_addresses == null) ? [] : elements.float.secondary_addresses : {
+        secondary_address_id          = elements.float_placeholder
+        secondary_address_placeholder = "[${secondary_address}]_[${elements.float.ip_address}]"
+        secondary_address             = secondary_address
+      }
+    ]
+  ]))
+
   floating_svi_path = (flatten([
     for float in local.floating_svi : [
       for svi in(float.float.path_attributes == null) ? [] : float.float.path_attributes : {
@@ -680,7 +690,7 @@ locals {
     for vpc in var.vpcs : {
       pod_id            = vpc.pod_id
       node_ids          = join("-", [for node in vpc.nodes : node.node_id])
-      logical_node_name = format("pod_%s_nodes_%s", vpc.pod_id, join("_", [for node in vpc.nodes : node.node_id]))
+      logical_node_name = vpc.pod_id != null ? format("pod_%s_nodes_%s", vpc.pod_id, join("_", [for node in vpc.nodes : node.node_id])) : null
       interfaces        = vpc.interfaces
       nodes             = vpc.nodes
       static_routes     = vpc.static_routes
@@ -915,6 +925,74 @@ locals {
 
   vpc_bgp_peer_route_control_profiles_global_to_interface_ipv6 = (flatten([
     for bgp in local.vpc_bgp_peers_global_to_interface_ipv6 : [
+      for control in(bgp.bgp_peer.route_control_profiles == null) ? [] : bgp.bgp_peer.route_control_profiles : {
+        control_id           = bgp.bgp_peer.ipv6_address
+        control_placeholder  = "[${control.target_dn}]_[${control.direction}]_${bgp.bgp_peer_placeholder}"
+        bgp_peer_placeholder = bgp.bgp_peer_placeholder
+        control              = control
+      }
+    ]
+  ]))
+
+  bgp_peer_global_to_vpc_nodes = (flatten([
+    for node in local.vpc_nodes : [
+      for bgp_peer in var.bgp_peers : {
+        logical_node_name    = node.logical_node_name
+        pod_id               = node.pod_id
+        node_id              = node.node_id
+        bgp_peer_placeholder = bgp_peer.ip_address != null ? "[${bgp_peer.ip_address}]_[pod-${node.pod_id}/node-${node.node_id}]" : "[${bgp_peer.ipv6_address}]_[pod-${node.pod_id}/node-${node.node_id}]"
+        bgp_peer             = bgp_peer
+      }
+      if bgp_peer.loopback_as_source != false && (bgp_peer.ip_address != null || bgp_peer.ipv6_address != null)
+    ]
+  ]))
+
+  bgp_peer_route_control_profiles_global_to_vpc_nodes = (flatten([
+    for bgp in local.bgp_peer_global_to_vpc_nodes : [
+      for control in(bgp.bgp_peer.route_control_profiles == null) ? [] : bgp.bgp_peer.route_control_profiles : {
+        control_id           = bgp.bgp_peer.ip_address != null ? bgp.bgp_peer.ip_address : bgp.bgp_peer.ipv6_address
+        control_placeholder  = "[${control.target_dn}]_[${control.direction}]_${bgp.bgp_peer_placeholder}"
+        bgp_peer_placeholder = bgp.bgp_peer_placeholder
+        control              = control
+      }
+    ]
+  ]))
+
+  bgp_peer_global_to_interface_ip_vpc = (flatten([
+    for interface in local.vpc_logical_interfaces_ip : [
+      for bgp_peer in(var.bgp_peers == null) ? [] : var.bgp_peers : {
+        bgp_peer_id          = interface.interface_placeholder
+        bgp_peer             = bgp_peer
+        bgp_peer_placeholder = "[${bgp_peer.ip_address}]_[${interface.interface_placeholder}]"
+      }
+      if(bgp_peer.loopback_as_source == false && bgp_peer.ipv6_address == null)
+    ]
+  ]))
+
+  bgp_peer_global_route_control_profiles_interface_ip_vpc = (flatten([
+    for bgp in local.bgp_peer_global_to_interface_ip_vpc : [
+      for control in(bgp.bgp_peer.route_control_profiles == null) ? [] : bgp.bgp_peer.route_control_profiles : {
+        control_id           = bgp.bgp_peer.ip_address
+        control_placeholder  = "[${control.target_dn}]_[${control.direction}]_${bgp.bgp_peer_placeholder}"
+        bgp_peer_placeholder = bgp.bgp_peer_placeholder
+        control              = control
+      }
+    ]
+  ]))
+
+  bgp_peer_global_to_interface_ipv6_vpc = (flatten([
+    for interface in local.vpc_logical_interfaces_ipv6 : [
+      for bgp_peer in(var.bgp_peers == null) ? [] : var.bgp_peers : {
+        bgp_peer_id          = interface.interface_placeholder
+        bgp_peer             = bgp_peer
+        bgp_peer_placeholder = "[${bgp_peer.ipv6_address}]_[${interface.interface_placeholder}]"
+      }
+      if(bgp_peer.loopback_as_source == false && bgp_peer.ipv6_address != null)
+    ]
+  ]))
+
+  bgp_peer_route_control_profiles_global_to_interface_ipv6_vpc = (flatten([
+    for bgp in local.bgp_peer_global_to_interface_ipv6_vpc : [
       for control in(bgp.bgp_peer.route_control_profiles == null) ? [] : bgp.bgp_peer.route_control_profiles : {
         control_id           = bgp.bgp_peer.ipv6_address
         control_placeholder  = "[${control.target_dn}]_[${control.direction}]_${bgp.bgp_peer_placeholder}"

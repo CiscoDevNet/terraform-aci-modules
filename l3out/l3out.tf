@@ -437,6 +437,13 @@ resource "aci_bgp_peer_connectivity_profile" "floating_svi_bgp_peer" {
   }
 }
 
+resource "aci_l3out_path_attachment_secondary_ip" "secondary_ip_addresses_floating_svi" {
+  for_each = { for addr in local.floating_svi_secondary_address : addr.secondary_address_placeholder => addr }
+
+  l3out_path_attachment_dn = aci_l3out_floating_svi.floating_svi[each.value.secondary_address_id].id
+  addr                     = each.value.secondary_address
+}
+
 resource "aci_l3out_path_attachment_secondary_ip" "floating_svi_secondary_ip_addr" {
   for_each = { for addr in local.floating_svi_path_secondary_address : addr.secondary_address_placeholder => addr }
 

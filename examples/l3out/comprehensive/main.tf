@@ -240,7 +240,7 @@ module "l3out" {
           loopback_address   = "172.16.31.101"
           static_routes = [
             {
-              ip                  = "11.0.0.3/12"
+              ip                  = "11.0.0.3/24"
               fallback_preference = "1"
               route_control       = true
               next_hop_addresses = [
@@ -255,7 +255,7 @@ module "l3out" {
               ]
             },
             {
-              ip                  = "12.0.0.2/12"
+              ip                  = "12.0.0.2/24"
               fallback_preference = "3"
               route_control       = false
               next_hop_addresses = [
@@ -294,7 +294,7 @@ module "l3out" {
               node_id        = "101"
               interface_id   = "eth1/26"
               path_type      = "port"
-              ip_address     = "13.1.1.1/12"
+              ip_address     = "13.1.1.1/24"
               target_dscp    = "EF"
               bgp_peers = [
                 {
@@ -324,7 +324,7 @@ module "l3out" {
               node_id        = "102"
               interface_id   = "eth1/27"
               path_type      = "port"
-              ip_address     = "14.1.1.2/12"
+              ip_address     = "14.1.1.2/24"
               target_dscp    = "EF"
             },
             {
@@ -333,15 +333,15 @@ module "l3out" {
               node_id        = "103"
               interface_id   = "eth1/28"
               path_type      = "port"
-              ip_address     = "11.1.1.3/12"
+              ip_address     = "11.1.1.3/24"
               target_dscp    = "EF"
               secondary_addresses = [
                 {
-                  ip_address = "11.1.1.5/12"
+                  ip_address = "11.1.1.5/24"
                   ipv6_dad   = "enabled"
                 },
                 {
-                  ip_address = "11.1.1.6/12"
+                  ip_address = "11.1.1.6/24"
                   ipv6_dad   = "disabled"
                 },
               ]
@@ -352,7 +352,7 @@ module "l3out" {
               node_id        = "104"
               interface_id   = "eth1/29"
               path_type      = "pc"
-              ip_address     = "12.1.1.4/12"
+              ip_address     = "12.1.1.4/24"
               target_dscp    = "EF"
             },
             {
@@ -361,7 +361,7 @@ module "l3out" {
               node_id        = "106"
               interface_id   = "eth1/30"
               path_type      = "pc"
-              ip_address     = "13.1.1.5/12"
+              ip_address     = "13.1.1.5/24"
               target_dscp    = "EF"
             },
             {
@@ -370,7 +370,7 @@ module "l3out" {
               node_id        = "108"
               interface_id   = "eth1/31"
               path_type      = "pc"
-              ip_address     = "15.1.1.9/12"
+              ip_address     = "15.1.1.9/24"
               target_dscp    = "EF"
             },
             {
@@ -383,35 +383,35 @@ module "l3out" {
               #ip_address     = "0.0.0.0/0"
               target_dscp = "EF"
               side_A = {
-                ip_address = "15.1.1.9/12"
+                ip_address = "15.1.1.9/24"
                 secondary_addresses = [
                   {
-                    ip_address = "15.1.1.10/12"
+                    ip_address = "15.1.1.10/24"
                     ipv6_dad   = "disabled"
                   },
                   {
-                    ip_address = "15.1.1.11/12"
+                    ip_address = "15.1.1.11/24"
                     ipv6_dad   = "disabled"
                   },
                   {
-                    ip_address = "15.1.1.12/12"
+                    ip_address = "15.1.1.12/24"
                     ipv6_dad   = "disabled"
                   },
                 ]
               }
               side_B = {
-                ip_address = "15.1.1.13/12"
+                ip_address = "15.1.1.13/24"
                 secondary_addresses = [
                   {
-                    ip_address = "15.1.1.14/12"
+                    ip_address = "15.1.1.14/24"
                     ipv6_dad   = "disabled"
                   },
                   {
-                    ip_address = "15.1.1.15/12"
+                    ip_address = "15.1.1.15/24"
                     ipv6_dad   = "disabled"
                   },
                   {
-                    ip_address = "15.1.1.16/12"
+                    ip_address = "15.1.1.16/24"
                     ipv6_dad   = "disabled"
                   },
                 ]
@@ -420,20 +420,21 @@ module "l3out" {
           ]
           floating_svi = [
             {
-              pod_id      = "1"
-              node_id     = "106"
-              ip_address  = "19.1.1.18/12"
-              encap       = "vlan-1"
-              mac         = "00:22:BD:F8:19:FF"
-              target_dscp = "EF"
+              pod_id              = "1"
+              node_id             = "106"
+              ip_address          = "19.1.1.18/24"
+              encap               = "vlan-1"
+              mac                 = "00:22:BD:F8:19:FF"
+              target_dscp         = "EF"
+              secondary_addresses = ["19.1.1.30/24", "19.1.1.31/24", "19.1.1.32/24"]
               path_attributes = [
                 {
                   domain_dn           = aci_physical_domain.physical_domain.id
-                  floating_address    = "19.1.2.1/12"
+                  floating_address    = "19.1.2.1/24"
                   forged_transmit     = false
                   mac_change          = false
                   promiscuous_mode    = false
-                  secondary_addresses = ["19.1.23.1/12", "19.1.23.2/12", "19.1.23.3/12"]
+                  secondary_addresses = ["19.1.23.1/24", "19.1.23.2/24", "19.1.23.3/24"]
                 }
               ]
               bgp_peers = [
@@ -481,18 +482,18 @@ module "l3out" {
             {
               pod_id      = "106"
               node_id     = "1"
-              ip_address  = "20.1.1.4/12"
+              ip_address  = "20.1.1.4/24"
               encap       = "vlan-2"
               mac         = "00:22:BD:F8:19:FF"
               target_dscp = "EF"
               path_attributes = [
                 {
                   domain_dn           = aci_physical_domain.physical_domain.id
-                  floating_address    = "10.23.2.2/12"
+                  floating_address    = "10.23.2.2/24"
                   forged_transmit     = false
                   mac_change          = false
                   promiscuous_mode    = false
-                  secondary_addresses = ["10.34.23.1/12", "10.34.23.2/12", "10.34.23.3/12"]
+                  secondary_addresses = ["10.34.23.1/24", "10.34.23.2/24", "10.34.23.3/24"]
                 }
               ]
               bgp_peers = [
@@ -542,7 +543,7 @@ module "l3out" {
               node_id        = "101"
               interface_id   = "eth1/25"
               path_type      = "port"
-              ip_address     = "17.1.1.1/12"
+              ip_address     = "17.1.1.1/24"
               target_dscp    = "EF"
             },
             {
@@ -551,7 +552,7 @@ module "l3out" {
               node_id        = "102"
               interface_id   = "eth1/26"
               path_type      = "port"
-              ip_address     = "18.1.1.2/12"
+              ip_address     = "18.1.1.2/24"
               target_dscp    = "EF"
             },
             {
@@ -560,15 +561,15 @@ module "l3out" {
               node_id        = "104"
               interface_id   = "eth1/28"
               path_type      = "pc"
-              ip_address     = "19.1.1.87/12"
+              ip_address     = "19.1.1.87/24"
               target_dscp    = "EF"
               secondary_addresses = [
                 {
-                  ip_address = "10.1.1.5/12"
+                  ip_address = "10.1.1.5/24"
                   ipv6_dad   = "disabled"
                 },
                 {
-                  ip_address = "10.1.1.6/12"
+                  ip_address = "10.1.1.6/24"
                   ipv6_dad   = "disabled"
                 },
               ]
@@ -579,7 +580,7 @@ module "l3out" {
               node_id        = "106"
               interface_id   = "eth1/29"
               path_type      = "pc"
-              ip_address     = "20.1.1.76/12"
+              ip_address     = "20.1.1.76/24"
               target_dscp    = "EF"
             },
           ]
@@ -603,7 +604,7 @@ module "l3out" {
           loopback_address   = "175.16.31.101"
           static_routes = [
             {
-              ip                  = "16.0.0.3/12"
+              ip                  = "16.0.0.3/24"
               fallback_preference = "1"
               route_control       = true
               next_hop_addresses = [
@@ -713,7 +714,7 @@ module "l3out" {
           router_id_loopback = "yes"
           static_routes = [
             {
-              ip                  = "10.0.0.3/12"
+              ip                  = "10.0.0.3/24"
               fallback_preference = "1"
               route_control       = true
               next_hop_addresses = [
@@ -728,7 +729,7 @@ module "l3out" {
               ]
             },
             {
-              ip                  = "10.0.0.2/12"
+              ip                  = "10.0.0.2/24"
               fallback_preference = "2"
               route_control       = false
               next_hop_addresses = [
@@ -752,12 +753,12 @@ module "l3out" {
           loopback_address   = "172.16.31.104"
           static_routes = [
             {
-              ip                  = "10.0.0.6/12"
+              ip                  = "10.0.0.6/24"
               fallback_preference = "1"
               route_control       = true
             },
             {
-              ip                  = "10.0.0.7/12"
+              ip                  = "10.0.0.7/24"
               fallback_preference = "2"
               next_hop_addresses = [
                 {
@@ -829,7 +830,7 @@ module "l3out" {
               node_id        = "101"
               interface_id   = "eth1/25"
               path_type      = "port"
-              ip_address     = "17.1.1.1/12"
+              ip_address     = "17.1.1.1/24"
               target_dscp    = "EF"
             },
             {
@@ -838,7 +839,7 @@ module "l3out" {
               node_id        = "102"
               interface_id   = "eth1/28"
               path_type      = "pc"
-              ip_address     = "10.1.1.27/12"
+              ip_address     = "10.1.1.27/24"
               target_dscp    = "EF"
             },
             {
@@ -847,7 +848,7 @@ module "l3out" {
               node_id        = "103"
               interface_id   = "eth1/29"
               path_type      = "pc"
-              ip_address     = "20.1.1.89/12"
+              ip_address     = "20.1.1.89/24"
               target_dscp    = "EF"
             },
           ]
@@ -861,15 +862,15 @@ module "l3out" {
               node_id        = "101"
               interface_id   = "eth1/25"
               path_type      = "port"
-              ip_address     = "17.1.1.1/12"
+              ip_address     = "17.1.1.1/24"
               target_dscp    = "EF"
               secondary_addresses = [
                 {
-                  ip_address = "10.1.1.2/12"
+                  ip_address = "10.1.1.2/24"
                   ipv6_dad   = "disabled"
                 },
                 {
-                  ip_address = "10.1.1.3/12"
+                  ip_address = "10.1.1.3/24"
                   ipv6_dad   = "disabled"
                 },
               ]
@@ -880,7 +881,7 @@ module "l3out" {
               node_id        = "102"
               interface_id   = "eth1/26"
               path_type      = "port"
-              ip_address     = "18.1.1.2/12"
+              ip_address     = "18.1.1.2/24"
               target_dscp    = "EF"
             },
             {
@@ -889,7 +890,7 @@ module "l3out" {
               node_id        = "103"
               interface_id   = "eth1/27"
               path_type      = "port"
-              ip_address     = "11.1.1.3/12"
+              ip_address     = "11.1.1.3/24"
               target_dscp    = "EF"
             },
             {
@@ -898,7 +899,7 @@ module "l3out" {
               node_id        = "104"
               interface_id   = "eth1/28"
               path_type      = "pc"
-              ip_address     = "19.1.1.87/12"
+              ip_address     = "19.1.1.87/24"
               target_dscp    = "EF"
               bgp_peers = [
                 {
@@ -950,7 +951,7 @@ module "l3out" {
               node_id        = "106"
               interface_id   = "eth1/29"
               path_type      = "pc"
-              ip_address     = "20.1.1.76/12"
+              ip_address     = "20.1.1.76/24"
               target_dscp    = "EF"
             },
             {
@@ -986,20 +987,20 @@ module "l3out" {
                 },
               ]
               side_A = {
-                ip_address = "15.1.1.9/12"
+                ip_address = "15.1.1.9/24"
                 secondary_addresses = [
                   {
-                    ip_address = "15.1.1.10/12"
+                    ip_address = "15.1.1.10/24"
                     ipv6_dad   = "disabled"
                   },
                   {
-                    ip_address = "15.1.1.11/12"
+                    ip_address = "15.1.1.11/24"
                     ipv6_dad   = "disabled"
                   },
                 ]
               }
               side_B = {
-                ip_address = "15.1.1.13/12"
+                ip_address = "15.1.1.13/24"
               }
             },
             {
@@ -1009,15 +1010,15 @@ module "l3out" {
               node2_id       = "109"
               interface_id   = "eth1/30"
               path_type      = "pc"
-              ip_address     = "15.1.1.9/12"
+              ip_address     = "15.1.1.9/24"
               target_dscp    = "EF"
               secondary_addresses = [
                 {
-                  ip_address = "10.1.1.2/12"
+                  ip_address = "10.1.1.2/24"
                   ipv6_dad   = "enabled"
                 },
                 {
-                  ip_address = "10.1.1.8/12"
+                  ip_address = "10.1.1.8/24"
                   ipv6_dad   = "disabled"
                 },
               ]
@@ -1027,7 +1028,7 @@ module "l3out" {
             {
               pod_id      = "1"
               node_id     = "106"
-              ip_address  = "15.1.1.18/12"
+              ip_address  = "15.1.1.18/24"
               encap       = "vlan-3"
               mac         = "00:22:BD:F8:19:FF"
               target_dscp = "EF"
@@ -1035,11 +1036,11 @@ module "l3out" {
                 {
                   domain_dn           = aci_physical_domain.physical_domain.id
                   vlan                = "vlan-3"
-                  floating_address    = "10.23.2.5/12"
+                  floating_address    = "10.23.2.5/24"
                   forged_transmit     = false
                   mac_change          = false
                   promiscuous_mode    = false
-                  secondary_addresses = ["10.34.23.1/12", "10.34.23.2/12", "10.34.23.3/12"]
+                  secondary_addresses = ["10.34.23.1/24", "10.34.23.2/24", "10.34.23.3/24"]
                 }
               ]
               bgp_peers = [
@@ -1083,18 +1084,18 @@ module "l3out" {
             {
               pod_id      = "1"
               node_id     = "107"
-              ip_address  = "10.1.1.19/12"
+              ip_address  = "10.1.1.19/24"
               encap       = "vlan-4"
               mac         = "00:22:BD:F8:19:FF"
               target_dscp = "EF"
               path_attributes = [
                 {
                   domain_dn           = aci_physical_domain.physical_domain.id
-                  floating_address    = "10.23.2.8/12"
+                  floating_address    = "10.23.2.8/24"
                   forged_transmit     = false
                   mac_change          = false
                   promiscuous_mode    = false
-                  secondary_addresses = ["10.34.23.1/12", "10.34.23.2/12", "10.34.23.3/12"]
+                  secondary_addresses = ["10.34.23.1/24", "10.34.23.2/24", "10.34.23.3/24"]
                 }
               ]
             },
