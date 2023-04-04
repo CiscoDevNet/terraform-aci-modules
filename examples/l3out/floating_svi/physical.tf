@@ -1,18 +1,3 @@
-terraform {
-  required_providers {
-    aci = {
-      source = "CiscoDevNet/aci"
-    }
-  }
-}
-
-provider "aci" {
-  username = ""
-  password = ""
-  url      = ""
-  insecure = true
-}
-
 # floating svi simplified module
 module "l3out_floating_svi_simplified_bgp" {
   source      = "../../../l3out"
