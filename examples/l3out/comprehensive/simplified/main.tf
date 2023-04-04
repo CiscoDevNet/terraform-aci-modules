@@ -13,17 +13,16 @@ provider "aci" {
   insecure = true
 }
 
-module "l3out" {
-  source      = "../../../l3out"
+// Test file for vpc, floating_svi and nodes with bgp enabled; bgp_peers present at global level
+module "l3out_simplified" {
+  source      = "../../../../l3out"
   tenant_dn   = aci_tenant.tenant.id
-  name        = "module_dynamic_l3out"
-  alias       = "dynamic_l3out"
+  name        = "module_simplified_l3out"
+  alias       = "simplified_l3out"
   description = "Created by l3out module"
   vrf_dn      = aci_vrf.vrf.id
 
-  bgp = {
-    alias = "bgp"
-  }
+  bgp = true
 
   vpcs = [
     {
@@ -180,7 +179,7 @@ module "l3out" {
       interfaces = [
         {
           channel = "channel_vpc2"
-          vlan    = "2"
+          vlan    = "1"
           side_a = {
             ip                     = "19.4.2.20/24"
             secondary_ip_addresses = ["19.4.3.20/24", "19.4.4.20/24", "19.4.5.20/24"]
@@ -192,7 +191,7 @@ module "l3out" {
         },
         {
           channel = "channel_vpc3"
-          vlan    = "2"
+          vlan    = "1"
           side_a = {
             ip                 = "19.4.2.20/24"
             ipv6               = "2000:db1:a::15/64"
@@ -1367,7 +1366,7 @@ module "l3out" {
       bgp_peers = [
         {
           loopback_as_source  = false
-          ip_address          = "10.1.1.51"
+          ip_address          = "10.1.1.58"
           address_control     = ["af-mcast", "af-ucast"]
           allowed_self_as_cnt = "1"
           bgp_controls = {
@@ -1421,4 +1420,3 @@ module "l3out" {
     }
   ]
 }
-      

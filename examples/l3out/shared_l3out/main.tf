@@ -26,15 +26,66 @@ resource "aci_l3_domain_profile" "profile" {
   name = "l3_WAN"
 }
 
-module "l3out" {
-  source                    = "../../../l3out"
-  tenant_dn                 = data.aci_tenant.common.id
-  name                      = "WAN"
-  alias                     = "l3out"
-  description               = "Created by l3out module"
-  route_control_enforcement = true
-  vrf_dn                    = data.aci_vrf.default.id
-  l3_domain_dn              = aci_l3_domain_profile.profile.id
+# Shared L3Out simplified module
+module "l3out_shared_simplified" {
+  source               = "../../../l3out"
+  tenant_dn            = data.aci_tenant.common.id
+  name                 = "WAN_simplified"
+  alias                = "l3out_simplified"
+  description          = "Created by l3out module"
+  import_route_control = true
+  vrf_dn               = data.aci_vrf.default.id
+  l3_domain_dn         = aci_l3_domain_profile.profile.id
+
+  nodes = [
+    {
+      node_id   = "103"
+      pod_id    = "1"
+      router_id = "201.201.201.201"
+      interfaces = [
+        {
+          port = "1/16"
+          ip   = "222.222.222.2/30"
+          vlan = "11"
+        }
+      ]
+      static_routes = [
+        {
+          prefix = "0.0.0.0/0"
+          next_hop_addresses = [
+            {
+              next_hop_ip = "222.222.222.1"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+
+  external_epgs = [
+    {
+      name              = "WAN-Ext2"
+      provided_contract = aci_contract.contract1.id
+      subnets = [
+        {
+          ip    = "0.0.0.0/0"
+          scope = ["export-rtctrl"]
+        }
+      ]
+    }
+  ]
+}
+
+# Shared L3Out regular module
+module "l3out_shared" {
+  source               = "../../../l3out"
+  tenant_dn            = data.aci_tenant.common.id
+  name                 = "WAN"
+  alias                = "l3out"
+  description          = "Created by l3out module"
+  import_route_control = true
+  vrf_dn               = data.aci_vrf.default.id
+  l3_domain_dn         = aci_l3_domain_profile.profile.id
 
   logical_node_profiles = [
     {

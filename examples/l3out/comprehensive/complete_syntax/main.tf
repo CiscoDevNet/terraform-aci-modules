@@ -14,7 +14,7 @@ provider "aci" {
 }
 
 module "l3out" {
-  source               = "../../../l3out"
+  source               = "../../../../l3out"
   tenant_dn            = aci_tenant.tenant.id
   name                 = "module_l3out"
   alias                = "l3out"
@@ -24,9 +24,7 @@ module "l3out" {
   vrf_dn               = aci_vrf.vrf.id
   l3_domain_dn         = aci_l3_domain_profile.profile.id
 
-  bgp = {
-    alias = "bgp"
-  }
+  bgp = true
 
   route_control_for_dampening = [
     {
@@ -382,7 +380,7 @@ module "l3out" {
               path_type      = "vpc"
               #ip_address     = "0.0.0.0/0"
               target_dscp = "EF"
-              side_A = {
+              side_a = {
                 ip_address = "15.1.1.9/24"
                 secondary_addresses = [
                   {
@@ -399,7 +397,7 @@ module "l3out" {
                   },
                 ]
               }
-              side_B = {
+              side_b = {
                 ip_address = "15.1.1.13/24"
                 secondary_addresses = [
                   {
@@ -421,7 +419,7 @@ module "l3out" {
           floating_svi = [
             {
               pod_id              = "1"
-              node_id             = "106"
+              node_id             = "110"
               ip_address          = "19.1.1.18/24"
               encap               = "vlan-1"
               mac                 = "00:22:BD:F8:19:FF"
@@ -480,8 +478,8 @@ module "l3out" {
               ]
             },
             {
-              pod_id      = "106"
-              node_id     = "1"
+              pod_id      = "1"
+              node_id     = "112"
               ip_address  = "20.1.1.4/24"
               encap       = "vlan-2"
               mac         = "00:22:BD:F8:19:FF"
@@ -577,10 +575,10 @@ module "l3out" {
             {
               interface_type = "sub-interface"
               pod_id         = "1"
-              node_id        = "106"
+              node_id        = "114"
               interface_id   = "eth1/29"
               path_type      = "pc"
-              ip_address     = "20.1.1.76/24"
+              ip_address     = "20.1.1.77/24"
               target_dscp    = "EF"
             },
           ]
@@ -948,7 +946,7 @@ module "l3out" {
             {
               interface_type = "sub-interface"
               pod_id         = "1"
-              node_id        = "106"
+              node_id        = "115"
               interface_id   = "eth1/29"
               path_type      = "pc"
               ip_address     = "20.1.1.76/24"
@@ -986,7 +984,7 @@ module "l3out" {
                   ]
                 },
               ]
-              side_A = {
+              side_a = {
                 ip_address = "15.1.1.9/24"
                 secondary_addresses = [
                   {
@@ -999,7 +997,7 @@ module "l3out" {
                   },
                 ]
               }
-              side_B = {
+              side_b = {
                 ip_address = "15.1.1.13/24"
               }
             },
@@ -1027,7 +1025,7 @@ module "l3out" {
           floating_svi = [
             {
               pod_id      = "1"
-              node_id     = "106"
+              node_id     = "111"
               ip_address  = "15.1.1.18/24"
               encap       = "vlan-3"
               mac         = "00:22:BD:F8:19:FF"

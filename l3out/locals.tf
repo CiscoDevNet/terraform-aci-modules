@@ -194,7 +194,7 @@ locals {
 
   address_A = (flatten([
     for elements in local.paths : [
-      for address in(elements.path.side_A == null) ? [] : [elements.path.side_A] : {
+      for address in(elements.path.side_a == null) ? [] : [elements.path.side_a] : {
         address_A_id          = elements.path_placeholder
         address_A_placeholder = "[${address.ip_address}]_[0.0.0.0/0]_[${elements.path_id}]"
         address_A             = address
@@ -204,7 +204,7 @@ locals {
 
   address_B = (flatten([
     for elements in local.paths : [
-      for address in(elements.path.side_B == null) ? [] : [elements.path.side_B] : {
+      for address in(elements.path.side_b == null) ? [] : [elements.path.side_b] : {
         address_B_id          = elements.path_placeholder
         address_B_placeholder = "[${address.ip_address}]_[0.0.0.0/0]_[${elements.path_id}]"
         address_B             = address
@@ -513,6 +513,7 @@ locals {
         pod_id           = "${node.pod_id}"
         node_id          = "${node.node_id}"
         path_placeholder = (path.port != null) ? "${path.port}_${node.node_id}" : ((path.channel != null) ? "${path.channel}_${node.node_id}" : "${path.anchor_node}_${node.node_id}")
+        node             = node
         path             = path
         path_id          = "pod_${node.pod_id}_node_${node.node_id}_ipv4"
       }
@@ -526,6 +527,7 @@ locals {
         pod_id           = "${node.pod_id}"
         node_id          = "${node.node_id}"
         path_placeholder = (path.port != null) ? "${path.port}_${node.node_id}" : ((path.channel != null) ? "${path.channel}_${node.node_id}" : "${path.anchor_node}_${node.node_id}")
+        node             = node
         path             = path
         path_id          = "pod_${node.pod_id}_node_${node.node_id}_ipv6"
 
@@ -688,13 +690,14 @@ locals {
 
   vpc_logical_nodes = [
     for vpc in var.vpcs : {
-      pod_id            = vpc.pod_id
-      node_ids          = join("-", [for node in vpc.nodes : node.node_id])
-      logical_node_name = vpc.pod_id != null ? format("pod_%s_nodes_%s", vpc.pod_id, join("_", [for node in vpc.nodes : node.node_id])) : null
-      interfaces        = vpc.interfaces
-      nodes             = vpc.nodes
-      static_routes     = vpc.static_routes
-      bgp_peers         = vpc.bgp_peers
+      pod_id                 = vpc.pod_id
+      node_ids               = join("-", [for node in vpc.nodes : node.node_id])
+      logical_node_name      = vpc.pod_id != null ? format("pod_%s_nodes_%s", vpc.pod_id, join("_", [for node in vpc.nodes : node.node_id])) : null
+      interfaces             = vpc.interfaces
+      nodes                  = vpc.nodes
+      static_routes          = vpc.static_routes
+      bgp_peers              = vpc.bgp_peers
+      ospf_interface_profile = vpc.ospf_interface_profile
     }
   ]
 
@@ -754,11 +757,12 @@ locals {
   vpc_logical_interfaces_ip = (flatten([
     for vpc in local.vpc_logical_nodes : [
       for interface in(vpc.interfaces == null) ? [] : vpc.interfaces : {
-        interface_placeholder = interface.channel
-        logical_node_name     = vpc.logical_node_name
-        pod_id                = vpc.pod_id
-        node_ids              = vpc.node_ids
-        interface             = interface
+        interface_placeholder  = interface.channel
+        logical_node_name      = vpc.logical_node_name
+        pod_id                 = vpc.pod_id
+        node_ids               = vpc.node_ids
+        ospf_interface_profile = vpc.ospf_interface_profile
+        interface              = interface
       }
       if(interface.side_a.ip != null)
     ]
@@ -767,11 +771,12 @@ locals {
   vpc_logical_interfaces_ipv6 = (flatten([
     for vpc in local.vpc_logical_nodes : [
       for interface in(vpc.interfaces == null) ? [] : vpc.interfaces : {
-        interface_placeholder = interface.channel
-        logical_node_name     = vpc.logical_node_name
-        pod_id                = vpc.pod_id
-        node_ids              = vpc.node_ids
-        interface             = interface
+        interface_placeholder  = interface.channel
+        logical_node_name      = vpc.logical_node_name
+        pod_id                 = vpc.pod_id
+        node_ids               = vpc.node_ids
+        ospf_interface_profile = vpc.ospf_interface_profile
+        interface              = interface
       }
       if(interface.side_a.ipv6 != null)
     ]

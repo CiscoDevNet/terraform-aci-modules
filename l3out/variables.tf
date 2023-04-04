@@ -34,12 +34,6 @@ variable "l3_domain_dn" {
   default = ""
 }
 
-//remove this
-# variable "route_profile_for_interleak_dn" {
-#   type    = string
-#   default = ""
-# }
-
 variable "route_control_for_dampening" {
   type = list(object(
     {
@@ -68,17 +62,6 @@ variable "route_control_for_interleak_redistribution" {
   ))
   default = []
 }
-
-// "route_profile_for_interleak_dn"
-# variable "route_profiles_for_redistribution" {
-#   type = list(object(
-#     {
-#       source       = optional(string)
-#       route_map_dn = optional(string)
-#     }
-#   ))
-#   default = []
-# }
 
 variable "multicast" {
   type = object(
@@ -134,13 +117,8 @@ variable "ospf" {
 
 ############## Variable for  "aci_l3out_bgp_external_policy" ######## 
 variable "bgp" {
-  type = object(
-    {
-      annotation = optional(string)
-      alias      = optional(string)
-    }
-  )
-  default = null
+  type    = bool
+  default = false
 }
 
 ############## Variable for  "aci_external_epgs" ####################
@@ -460,28 +438,28 @@ variable "logical_node_profiles" {
               secondary_addresses = optional(list(object(
                 {
                   ip_address = string
-                  ipv6_dad   = string
+                  ipv6_dad   = optional(string)
                 }
               )))
-              side_A = optional(object({
+              side_a = optional(object({
                 ip_address         = string
                 link_local_address = optional(string)
                 secondary_addresses = optional(list(object(
                   {
                     ip_address = string
-                    ipv6_dad   = string
+                    ipv6_dad   = optional(string)
                   }
                 )))
                 }
               ))
-              side_B = optional(object(
+              side_b = optional(object(
                 {
                   ip_address         = string
                   link_local_address = optional(string)
                   secondary_addresses = optional(list(object(
                     {
                       ip_address = string
-                      ipv6_dad   = string
+                      ipv6_dad   = optional(string)
                     }
                   )))
                 }
@@ -647,6 +625,16 @@ variable "vpcs" {
           )))
         }
       )))
+      ospf_interface_profile = optional(object(
+        {
+          authentication_key    = optional(string)
+          authentication_key_id = optional(string)
+          authentication_type   = optional(string)
+          ospf_interface_policy = optional(string)
+          description           = optional(string)
+          annotation            = optional(string)
+        }
+      ))
       bgp_peers = optional(list(object(
         {
           loopback_as_source  = optional(bool)
@@ -704,6 +692,16 @@ variable "floating_svi" {
       floating_secondary_ip_addresses   = optional(list(string))
       floating_secondary_ipv6_addresses = optional(list(string))
       vlan                              = optional(string)
+      ospf_interface_profile = optional(object(
+        {
+          authentication_key    = optional(string)
+          authentication_key_id = optional(string)
+          authentication_type   = optional(string)
+          ospf_interface_policy = optional(string)
+          description           = optional(string)
+          annotation            = optional(string)
+        }
+      ))
       anchor_nodes = optional(list(object(
         {
           pod_id                   = string
@@ -763,6 +761,20 @@ variable "floating_svi" {
   default = {
     anchor_nodes = []
   }
+}
+
+variable "ospf_interface_profile" {
+  type = object(
+    {
+      authentication_key    = optional(string)
+      authentication_key_id = optional(string)
+      authentication_type   = optional(string)
+      ospf_interface_policy = optional(string)
+      description           = optional(string)
+      annotation            = optional(string)
+    }
+  )
+  default = null
 }
 
 variable "bgp_peers" {
@@ -833,6 +845,16 @@ variable "nodes" {
           )))
         }
       )))
+      ospf_interface_profile = optional(object(
+        {
+          authentication_key    = optional(string)
+          authentication_key_id = optional(string)
+          authentication_type   = optional(string)
+          ospf_interface_policy = optional(string)
+          description           = optional(string)
+          annotation            = optional(string)
+        }
+      ))
       bgp_peers = optional(list(object(
         {
           loopback_as_source  = optional(bool)

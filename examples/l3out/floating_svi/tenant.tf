@@ -1,7 +1,12 @@
 # Define an ACI Tenant Resource.
 resource "aci_tenant" "tenant" {
-  name        = "TF_tenant"
+  name        = "TF_tenant_floating_svi"
   description = "Created for l3out module"
+}
+
+resource "aci_contract" "contract" {
+  tenant_dn = aci_tenant.tenant.id
+  name      = "For_Internet"
 }
 
 resource "aci_vrf" "vrf" {
@@ -14,13 +19,23 @@ resource "aci_vrf" "vrf2" {
   name      = "App_vrf2"
 }
 
-resource "aci_l3_domain_profile" "profile" {
-  name = "l3_domain"
+resource "aci_physical_domain" "physical_domain" {
+  name = "PhysDom"
+}
+
+resource "aci_vmm_domain" "virtual_domain" {
+  provider_profile_dn = "uni/vmmp-VMware"
+  name                = "vm_Domain"
+}
+
+resource "aci_vmm_domain" "virtual_domain2" {
+  provider_profile_dn = "uni/vmmp-VMware"
+  name                = "vm_Domain2"
 }
 
 resource "aci_ospf_interface_policy" "ospf_interface_policy" {
   tenant_dn    = aci_tenant.tenant.id
-  name         = "demo_ospfpol"
+  name         = "simplified_ospfpol"
   cost         = "unspecified"
   ctrl         = ["mtu-ignore"]
   dead_intvl   = "40"

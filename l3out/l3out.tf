@@ -39,18 +39,18 @@ resource "aci_l3out_ospf_external_policy" "ospf" {
 }
 
 resource "aci_l3out_bgp_external_policy" "external_bgp" {
-  count = (var.bgp != null) ? 1 : 0
+  count = (var.bgp != false) ? 1 : 0
 
   l3_outside_dn = aci_l3_outside.l3out.id
-  annotation    = var.annotation
-  name_alias    = var.bgp.alias
+  # annotation    = var.annotation
+  # name_alias    = var.bgp.alias
 }
 
 resource "aci_external_network_instance_profile" "l3out_external_epgs" {
   for_each = { for ext_epg in var.external_epgs : ext_epg.name => ext_epg }
 
   l3_outside_dn                = aci_l3_outside.l3out.id
-  annotation                   = each.value.annotation
+  annotation                   = var.annotation
   description                  = each.value.description
   exception_tag                = each.value.exception_tag
   match_t                      = each.value.label_match_criteria
@@ -138,7 +138,7 @@ resource "aci_route_control_profile" "l3out_route_control" {
 
   parent_dn                  = aci_l3_outside.l3out.id
   name                       = each.value.name
-  annotation                 = each.value.annotation
+  annotation                 = var.annotation
   description                = each.value.description
   name_alias                 = each.value.alias
   route_control_profile_type = each.value.route_control_profile_type
@@ -161,7 +161,7 @@ resource "aci_logical_node_profile" "logical_node_profile" {
   l3_outside_dn = aci_l3_outside.l3out.id
   description   = each.value.description
   name          = each.value.name
-  annotation    = each.value.annotation
+  annotation    = var.annotation
   name_alias    = each.value.alias
   tag           = each.value.tag
   target_dscp   = each.value.target_dscp
@@ -201,7 +201,7 @@ resource "aci_bgp_peer_connectivity_profile" "node_bgp_peer" {
   addr                = each.value.bgp_peer.ip_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
@@ -257,7 +257,7 @@ resource "aci_l3out_static_route_next_hop" "next_hop_address" {
   pref                               = each.value.next_hop.preference
   description                        = each.value.next_hop.description
   nexthop_profile_type               = each.value.next_hop.nexthop_profile_type
-  annotation                         = each.value.next_hop.annotation
+  annotation                         = var.annotation
   name_alias                         = each.value.next_hop.alias
   relation_ip_rs_nexthop_route_track = each.value.next_hop.track_policy
   relation_ip_rs_nh_track_member     = each.value.next_hop.track_member
@@ -287,7 +287,7 @@ resource "aci_l3out_ospf_interface_profile" "ospf_interface" {
 
   logical_interface_profile_dn = aci_logical_interface_profile.logical_interface_profile[each.key].id
   description                  = each.value.description
-  annotation                   = each.value.annotation
+  annotation                   = var.annotation
   auth_key                     = each.value.authentication_key
   auth_key_id                  = each.value.authentication_key_id
   auth_type                    = each.value.authentication_type
@@ -298,7 +298,7 @@ resource "aci_l3out_bfd_interface_profile" "bfd_interface" {
   for_each = { for interface in local.logical_interfaces : interface.interface_placeholder => interface.interface.bfd_interface_profile if interface.interface.bfd_interface_profile != null }
 
   logical_interface_profile_dn = aci_logical_interface_profile.logical_interface_profile[each.key].id
-  annotation                   = each.value.annotation
+  annotation                   = var.annotation
   description                  = each.value.description
   key                          = each.value.authentication_key
   key_id                       = each.value.authentication_key_id
@@ -329,7 +329,7 @@ resource "aci_l3out_hsrp_interface_profile" "hsrp_interface" {
   for_each = { for interface in local.logical_interfaces : interface.interface_placeholder => interface.interface.hsrp if interface.interface.hsrp != null }
 
   logical_interface_profile_dn = aci_logical_interface_profile.logical_interface_profile[each.key].id
-  annotation                   = each.value.annotation
+  annotation                   = var.annotation
   name_alias                   = each.value.alias
   version                      = each.value.version
 }
@@ -339,7 +339,7 @@ resource "aci_l3out_hsrp_interface_group" "hsrp_group" {
 
   l3out_hsrp_interface_profile_dn = aci_l3out_hsrp_interface_profile.hsrp_interface[each.value.hsrp_group_id].id
   name                            = each.value.hsrp_group.name
-  annotation                      = each.value.hsrp_group.annotation
+  annotation                      = var.annotation
   description                     = each.value.hsrp_group.description
   group_af                        = each.value.hsrp_group.address_family
   group_id                        = each.value.hsrp_group.group_id
@@ -369,7 +369,7 @@ resource "aci_l3out_path_attachment" "l3out_path" {
   encap                        = each.value.path.encap
   encap_scope                  = each.value.path.encap_scope
   mode                         = each.value.path.mode
-  annotation                   = each.value.path.annotation
+  annotation                   = var.annotation
   autostate                    = each.value.path.autostate
   ipv6_dad                     = each.value.path.ipv6_dad
   ll_addr                      = each.value.path.link_local_address
@@ -384,7 +384,7 @@ resource "aci_l3out_floating_svi" "floating_svi" {
   node_dn                      = "topology/pod-${each.value.float.pod_id}/node-${each.value.float.node_id}"
   encap                        = each.value.float.encap
   addr                         = each.value.float.ip_address
-  annotation                   = each.value.float.annotation
+  annotation                   = var.annotation
   description                  = each.value.float.description
   autostate                    = each.value.float.autostate
   encap_scope                  = each.value.float.encap_scope
@@ -415,7 +415,7 @@ resource "aci_bgp_peer_connectivity_profile" "floating_svi_bgp_peer" {
   addr                = each.value.bgp_peer.ip_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
@@ -449,6 +449,7 @@ resource "aci_l3out_path_attachment_secondary_ip" "floating_svi_secondary_ip_add
 
   l3out_path_attachment_dn = "${aci_l3out_floating_svi.floating_svi[each.value.secondary_address_id].id}/rsdynPathAtt-[${each.value.tdn}]"
   addr                     = each.value.secondary_address
+  ipv6_dad                 = "disabled"
 }
 
 resource "aci_l3out_path_attachment_secondary_ip" "secondary_ip_addr" {
@@ -500,7 +501,7 @@ resource "aci_bgp_peer_connectivity_profile" "interface_bgp_peer" {
   addr                = each.value.bgp_peer.ip_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password

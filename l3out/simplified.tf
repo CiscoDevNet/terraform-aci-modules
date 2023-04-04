@@ -12,7 +12,7 @@ resource "aci_bgp_peer_connectivity_profile" "node_bgp_peers" {
   addr                = each.value.bgp_peer.ip_address != null ? each.value.bgp_peer.ip_address : each.value.bgp_peer.ipv6_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
@@ -44,7 +44,7 @@ resource "aci_logical_node_to_fabric_node" "dynamic_fabric_nodes" {
 }
 
 resource "aci_l3out_loopback_interface_profile" "dynamic_loopback_interfaces" {
-  for_each = { for node in var.nodes : node.node_id => node if node.node_id != null }
+  for_each = { for node in var.nodes : node.node_id => node if node.node_id != null && node.loopback_address != null }
 
   fabric_node_dn = aci_logical_node_to_fabric_node.dynamic_fabric_nodes["${each.key}"].id
   addr           = each.value.loopback_address
@@ -81,6 +81,54 @@ resource "aci_logical_interface_profile" "dynamic_logical_interface_profile_ipv6
   for_each                = { for idx, interface in var.nodes : idx => interface if contains([for nd_id in local.ipv6 : nd_id.node_id == var.nodes[idx].node_id], true) }
   logical_node_profile_dn = aci_logical_node_profile.dynamic_logical_node_profile["${each.value.node_id}"].id
   name                    = "pod_${each.value.pod_id}_node_${each.value.node_id}_ipv6"
+}
+
+resource "aci_l3out_ospf_interface_profile" "gloabl_node_dynamic_ospf_interface_ip" {
+  for_each = { for idx, path in local.ip : idx => path if path.node.ospf_interface_profile != null }
+
+  logical_interface_profile_dn = compact([for id in range(length(var.nodes)) : (each.value.node_id == var.nodes[id].node_id) ? aci_logical_interface_profile.dynamic_logical_interface_profile_ip[id].id : ""])[0]
+  description                  = each.value.node.ospf_interface_profile.description
+  annotation                   = var.annotation
+  auth_key                     = each.value.node.ospf_interface_profile.authentication_key
+  auth_key_id                  = each.value.node.ospf_interface_profile.authentication_key_id
+  auth_type                    = each.value.node.ospf_interface_profile.authentication_type
+  relation_ospf_rs_if_pol      = each.value.node.ospf_interface_profile.ospf_interface_policy
+}
+
+resource "aci_l3out_ospf_interface_profile" "global_node_dynamic_ospf_interface_ipv6" {
+  for_each = { for idx, path in local.ipv6 : idx => path if path.node.ospf_interface_profile != null }
+
+  logical_interface_profile_dn = compact([for id in range(length(var.nodes)) : (each.value.node_id == var.nodes[id].node_id) ? aci_logical_interface_profile.dynamic_logical_interface_profile_ipv6[id].id : ""])[0]
+  description                  = each.value.node.ospf_interface_profile.description
+  annotation                   = var.annotation
+  auth_key                     = each.value.node.ospf_interface_profile.authentication_key
+  auth_key_id                  = each.value.node.ospf_interface_profile.authentication_key_id
+  auth_type                    = each.value.node.ospf_interface_profile.authentication_type
+  relation_ospf_rs_if_pol      = each.value.node.ospf_interface_profile.ospf_interface_policy
+}
+
+resource "aci_l3out_ospf_interface_profile" "gloabl_dynamic_ospf_interface_ip" {
+  for_each = { for idx, path in local.ip : idx => path if var.ospf_interface_profile != null && path.node.ospf_interface_profile == null }
+
+  logical_interface_profile_dn = compact([for id in range(length(var.nodes)) : (each.value.node_id == var.nodes[id].node_id) ? aci_logical_interface_profile.dynamic_logical_interface_profile_ip[id].id : ""])[0]
+  description                  = var.ospf_interface_profile.description
+  annotation                   = var.annotation
+  auth_key                     = var.ospf_interface_profile.authentication_key
+  auth_key_id                  = var.ospf_interface_profile.authentication_key_id
+  auth_type                    = var.ospf_interface_profile.authentication_type
+  relation_ospf_rs_if_pol      = var.ospf_interface_profile.ospf_interface_policy
+}
+
+resource "aci_l3out_ospf_interface_profile" "global_dynamic_ospf_interface_ipv6" {
+  for_each = { for idx, path in local.ipv6 : idx => path if var.ospf_interface_profile != null && path.node.ospf_interface_profile == null }
+
+  logical_interface_profile_dn = compact([for id in range(length(var.nodes)) : (each.value.node_id == var.nodes[id].node_id) ? aci_logical_interface_profile.dynamic_logical_interface_profile_ipv6[id].id : ""])[0]
+  description                  = var.ospf_interface_profile.description
+  annotation                   = var.annotation
+  auth_key                     = var.ospf_interface_profile.authentication_key
+  auth_key_id                  = var.ospf_interface_profile.authentication_key_id
+  auth_type                    = var.ospf_interface_profile.authentication_type
+  relation_ospf_rs_if_pol      = var.ospf_interface_profile.ospf_interface_policy
 }
 
 resource "aci_l3out_path_attachment" "dynamic_l3out_path_ip" {
@@ -125,7 +173,7 @@ resource "aci_bgp_peer_connectivity_profile" "node_bgp_peers_global" {
   addr                = each.value.bgp_peer.ip_address != null ? each.value.bgp_peer.ip_address : each.value.bgp_peer.ipv6_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
@@ -154,7 +202,7 @@ resource "aci_bgp_peer_connectivity_profile" "interfaces_bgp_peer_from_global_ip
   addr                = each.value.bgp_peer.ip_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
@@ -183,7 +231,7 @@ resource "aci_bgp_peer_connectivity_profile" "interfaces_bgp_peer_from_global_ip
   addr                = each.value.bgp_peer.ipv6_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
@@ -212,7 +260,7 @@ resource "aci_bgp_peer_connectivity_profile" "interfaces_bgp_peer_from_node_ip" 
   addr                = each.value.bgp_peer.ip_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
@@ -241,7 +289,7 @@ resource "aci_bgp_peer_connectivity_profile" "interfaces_bgp_peer_from_node_ipv6
   addr                = each.value.bgp_peer.ipv6_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
@@ -270,7 +318,7 @@ resource "aci_bgp_peer_connectivity_profile" "interface_bgp_peer_ip" {
   addr                = each.value.bgp_peer.ip_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
@@ -299,7 +347,7 @@ resource "aci_bgp_peer_connectivity_profile" "interface_bgp_peer_ipv6" {
   addr                = each.value.bgp_peer.ipv6_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
@@ -342,15 +390,39 @@ resource "aci_logical_interface_profile" "dynamic_logical_interface_profile_floa
   name                    = "floating_svi_ipv6"
 }
 
+resource "aci_l3out_ospf_interface_profile" "floating_svi_ospf_interface_ip" {
+  count = var.floating_svi.floating_ip != null && var.floating_svi.ospf_interface_profile != null ? 1 : 0
+
+  logical_interface_profile_dn = aci_logical_interface_profile.dynamic_logical_interface_profile_floating_ip[0].id
+  description                  = var.floating_svi.ospf_interface_profile.description
+  annotation                   = var.annotation
+  auth_key                     = var.floating_svi.ospf_interface_profile.authentication_key
+  auth_key_id                  = var.floating_svi.ospf_interface_profile.authentication_key_id
+  auth_type                    = var.floating_svi.ospf_interface_profile.authentication_type
+  relation_ospf_rs_if_pol      = var.floating_svi.ospf_interface_profile.ospf_interface_policy
+}
+
+resource "aci_l3out_ospf_interface_profile" "floating_svi_ospf_interface_ipv6" {
+  count = var.floating_svi.floating_ipv6 != null && var.floating_svi.ospf_interface_profile != null ? 1 : 0
+
+  logical_interface_profile_dn = aci_logical_interface_profile.dynamic_logical_interface_profile_floating_ipv6[0].id
+  description                  = var.floating_svi.ospf_interface_profile.description
+  annotation                   = var.annotation
+  auth_key                     = var.floating_svi.ospf_interface_profile.authentication_key
+  auth_key_id                  = var.floating_svi.ospf_interface_profile.authentication_key_id
+  auth_type                    = var.floating_svi.ospf_interface_profile.authentication_type
+  relation_ospf_rs_if_pol      = var.floating_svi.ospf_interface_profile.ospf_interface_policy
+}
+
 resource "aci_l3out_floating_svi" "floating_svi_ip" {
   for_each = { for path in var.floating_svi.anchor_nodes : path.ip_address => path if path.ip_address != null }
 
   logical_interface_profile_dn = aci_logical_interface_profile.dynamic_logical_interface_profile_floating_ip[0].id
   node_dn                      = "topology/pod-${each.value.pod_id}/node-${each.value.node_id}"
-  encap                        = "vlan-${each.value.vlan}"
+  encap                        = each.value.vlan != null ? "vlan-${each.value.vlan}" : null
   addr                         = each.key
   if_inst_t                    = "ext-svi"
-  annotation                   = each.value.annotation
+  annotation                   = var.annotation
   description                  = each.value.description
   autostate                    = each.value.autostate
   encap_scope                  = each.value.encap_scope
@@ -364,7 +436,7 @@ resource "aci_l3out_floating_svi" "floating_svi_ip" {
   relation_l3ext_rs_dyn_path_att {
     tdn              = var.floating_svi.domain_dn
     floating_address = var.floating_svi.floating_ip
-    # encap = "vlan-${var.floating_svi.vlan}"
+    #encap            = var.floating_svi.vlan != null ? "vlan-${var.floating_svi.vlan}" : null
     forged_transmit  = var.floating_svi.forged_transmit == true ? "Enabled" : "Disabled"
     mac_change       = var.floating_svi.mac_change == true ? "Enabled" : "Disabled"
     promiscuous_mode = var.floating_svi.promiscuous_mode == true ? "Enabled" : "Disabled"
@@ -376,10 +448,10 @@ resource "aci_l3out_floating_svi" "floating_svi_ipv6" {
 
   logical_interface_profile_dn = aci_logical_interface_profile.dynamic_logical_interface_profile_floating_ipv6[0].id
   node_dn                      = "topology/pod-${each.value.pod_id}/node-${each.value.node_id}"
-  encap                        = "vlan-${each.value.vlan}"
+  encap                        = each.value.vlan != null ? "vlan-${each.value.vlan}" : null
   addr                         = each.key
   if_inst_t                    = "ext-svi"
-  annotation                   = each.value.annotation
+  annotation                   = var.annotation
   description                  = each.value.description
   autostate                    = each.value.autostate
   encap_scope                  = each.value.encap_scope
@@ -393,7 +465,7 @@ resource "aci_l3out_floating_svi" "floating_svi_ipv6" {
   relation_l3ext_rs_dyn_path_att {
     tdn              = var.floating_svi.domain_dn
     floating_address = var.floating_svi.floating_ipv6
-    # encap = "vlan-${var.floating_svi.vlan}"
+    #encap            = var.floating_svi.vlan != null ? "vlan-${var.floating_svi.vlan}" : null
     forged_transmit  = var.floating_svi.forged_transmit == true ? "Enabled" : "Disabled"
     mac_change       = var.floating_svi.mac_change == true ? "Enabled" : "Disabled"
     promiscuous_mode = var.floating_svi.promiscuous_mode == true ? "Enabled" : "Disabled"
@@ -436,7 +508,7 @@ resource "aci_bgp_peer_connectivity_profile" "bgp_peer_anchor_node_ip" {
   addr                = each.value.bgp_peer.ip_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
@@ -465,7 +537,7 @@ resource "aci_bgp_peer_connectivity_profile" "bgp_peer_anchor_node_ipv6" {
   addr                = each.value.bgp_peer.ipv6_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
@@ -634,7 +706,7 @@ resource "aci_bgp_peer_connectivity_profile" "vpc_interface_bgp_peer_ip" {
   addr                = each.value.bgp_peer.ip_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
@@ -663,7 +735,7 @@ resource "aci_bgp_peer_connectivity_profile" "vpc_interface_bgp_peer_ipv6" {
   addr                = each.value.bgp_peer.ipv6_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
@@ -692,7 +764,7 @@ resource "aci_bgp_peer_connectivity_profile" "vpc_node_bgp_peers" {
   addr                = each.value.bgp_peer.ip_address != null ? each.value.bgp_peer.ip_address : each.value.bgp_peer.ipv6_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
@@ -721,7 +793,7 @@ resource "aci_bgp_peer_connectivity_profile" "vpc_interfaces_bgp_peer_from_globa
   addr                = each.value.bgp_peer.ip_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
@@ -750,7 +822,7 @@ resource "aci_bgp_peer_connectivity_profile" "vpc_interfaces_bgp_peer_from_globa
   addr                = each.value.bgp_peer.ipv6_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
@@ -779,7 +851,7 @@ resource "aci_bgp_peer_connectivity_profile" "global_vpc_node_bgp_peers" {
   addr                = each.value.bgp_peer.ip_address != null ? each.value.bgp_peer.ip_address : each.value.bgp_peer.ipv6_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
@@ -801,6 +873,78 @@ resource "aci_bgp_peer_connectivity_profile" "global_vpc_node_bgp_peers" {
   }
 }
 
+resource "aci_l3out_ospf_interface_profile" "global_node_vpc_ospf_interface_ip" {
+  for_each = { for interface in local.vpc_logical_interfaces_ip : interface.interface_placeholder => interface if interface.ospf_interface_profile != null }
+
+  logical_interface_profile_dn = aci_logical_interface_profile.vpc_dynamic_logical_interface_profile_ip[each.value.logical_node_name].id
+  description                  = each.value.ospf_interface_profile.description
+  annotation                   = var.annotation
+  auth_key                     = each.value.ospf_interface_profile.authentication_key
+  auth_key_id                  = each.value.ospf_interface_profile.authentication_key_id
+  auth_type                    = each.value.ospf_interface_profile.authentication_type
+  relation_ospf_rs_if_pol      = each.value.ospf_interface_profile.ospf_interface_policy
+
+  // depends_on is added here to overcome the "VRF validation failed" issue seen when the same OSPF interface profile (associated with OSPF interface policy) is created with the IPV6 logical interface counterpart first
+  depends_on = [
+    aci_l3out_vpc_member.vpc_side_A_ip,
+    aci_l3out_vpc_member.vpc_side_B_ip
+  ]
+}
+
+resource "aci_l3out_ospf_interface_profile" "global_node_vpc_ospf_interface_ipv6" {
+  for_each = { for interface in local.vpc_logical_interfaces_ipv6 : interface.interface_placeholder => interface if interface.ospf_interface_profile != null }
+
+  logical_interface_profile_dn = aci_logical_interface_profile.vpc_dynamic_logical_interface_profile_ipv6[each.value.logical_node_name].id
+  description                  = each.value.ospf_interface_profile.description
+  annotation                   = var.annotation
+  auth_key                     = each.value.ospf_interface_profile.authentication_key
+  auth_key_id                  = each.value.ospf_interface_profile.authentication_key_id
+  auth_type                    = each.value.ospf_interface_profile.authentication_type
+  relation_ospf_rs_if_pol      = each.value.ospf_interface_profile.ospf_interface_policy
+
+  // depends_on is added here to overcome the "VRF validation failed" issue seen when the same OSPF interface profile (associated with OSPF interface policy) is created with the IPV4 logical interface counterpart first
+  depends_on = [
+    aci_l3out_vpc_member.vpc_side_A_ipv6,
+    aci_l3out_vpc_member.vpc_side_B_ipv6
+  ]
+}
+
+resource "aci_l3out_ospf_interface_profile" "global_vpc_ospf_interface_ip" {
+  for_each = { for interface in local.vpc_logical_interfaces_ip : interface.interface_placeholder => interface if var.ospf_interface_profile != null && interface.ospf_interface_profile == null }
+
+  logical_interface_profile_dn = aci_logical_interface_profile.vpc_dynamic_logical_interface_profile_ip[each.value.logical_node_name].id
+  description                  = var.ospf_interface_profile.description
+  annotation                   = var.annotation
+  auth_key                     = var.ospf_interface_profile.authentication_key
+  auth_key_id                  = var.ospf_interface_profile.authentication_key_id
+  auth_type                    = var.ospf_interface_profile.authentication_type
+  relation_ospf_rs_if_pol      = var.ospf_interface_profile.ospf_interface_policy
+
+  // depends_on is added here to overcome the "VRF validation failed" issue seen when the same OSPF interface profile (associated with OSPF interface policy) is created with the IPV6 logical interface counterpart first
+  depends_on = [
+    aci_l3out_vpc_member.vpc_side_A_ip,
+    aci_l3out_vpc_member.vpc_side_B_ip
+  ]
+}
+
+resource "aci_l3out_ospf_interface_profile" "global_vpc_ospf_interface_ipv6" {
+  for_each = { for interface in local.vpc_logical_interfaces_ipv6 : interface.interface_placeholder => interface if var.ospf_interface_profile != null && interface.ospf_interface_profile == null }
+
+  logical_interface_profile_dn = aci_logical_interface_profile.vpc_dynamic_logical_interface_profile_ipv6[each.value.logical_node_name].id
+  description                  = var.ospf_interface_profile.description
+  annotation                   = var.annotation
+  auth_key                     = var.ospf_interface_profile.authentication_key
+  auth_key_id                  = var.ospf_interface_profile.authentication_key_id
+  auth_type                    = var.ospf_interface_profile.authentication_type
+  relation_ospf_rs_if_pol      = var.ospf_interface_profile.ospf_interface_policy
+
+  // depends_on is added here to overcome the "VRF validation failed" issue seen when the same OSPF interface profile (associated with OSPF interface policy) is created with the IPV4 logical interface counterpart first
+  depends_on = [
+    aci_l3out_vpc_member.vpc_side_A_ipv6,
+    aci_l3out_vpc_member.vpc_side_B_ipv6
+  ]
+}
+
 resource "aci_bgp_peer_connectivity_profile" "global_vpc_interfaces_bgp_peer_ip" {
   for_each = { for bgp_peer in local.bgp_peer_global_to_interface_ip_vpc : bgp_peer.bgp_peer_placeholder => bgp_peer }
 
@@ -808,7 +952,7 @@ resource "aci_bgp_peer_connectivity_profile" "global_vpc_interfaces_bgp_peer_ip"
   addr                = each.value.bgp_peer.ip_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
@@ -837,7 +981,7 @@ resource "aci_bgp_peer_connectivity_profile" "global_vpc_interfaces_bgp_peer_ipv
   addr                = each.value.bgp_peer.ipv6_address
   addr_t_ctrl         = each.value.bgp_peer.address_control
   allowed_self_as_cnt = each.value.bgp_peer.allowed_self_as_cnt
-  annotation          = each.value.bgp_peer.annotation
+  annotation          = var.annotation
   ctrl                = [for control in(each.value.bgp_peer.bgp_controls != null) ? keys(each.value.bgp_peer.bgp_controls) : [] : replace(control, "_", "-") if((control != null) ? each.value.bgp_peer.bgp_controls[control] == true : null)]
   name_alias          = each.value.bgp_peer.alias
   password            = each.value.bgp_peer.password
