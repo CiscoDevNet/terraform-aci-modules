@@ -66,8 +66,8 @@ module "l3out_vpc_simplified" {
           side_b = {
             ip                       = "19.1.2.19/24"
             ipv6                     = "2000:db2:a::16/64"
-            secondary_ip_addresses   = ["19.1.2.17/24"]
-            secondary_ipv6_addresses = ["2000:db2:a::17/64"]
+            secondary_ip_addresses   = ["19.1.2.21/24"]
+            secondary_ipv6_addresses = ["2000:db2:a::18/64"]
           }
         }
       ]
@@ -148,7 +148,7 @@ module "l3out_vpc" {
                 ip_address = "19.1.2.19/24"
                 secondary_addresses = [
                   {
-                    ip_address = "19.1.2.17/24"
+                    ip_address = "19.1.2.21/24"
                   }
                 ]
               }
@@ -184,7 +184,7 @@ module "l3out_vpc" {
                 ip_address = "2000:db2:a::16/64"
                 secondary_addresses = [
                   {
-                    ip_address = "2000:db2:a::17/64"
+                    ip_address = "2000:db2:a::18/64"
                   }
                 ]
               }
