@@ -88,7 +88,6 @@ module "l3out_vpc_simplified" {
   ]
 }
 
-// make it the same with different vrf
 # vpc regular module
 module "l3out_vpc" {
   source      = "../../../l3out"

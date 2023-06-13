@@ -436,7 +436,7 @@ resource "aci_l3out_floating_svi" "floating_svi_ip" {
   relation_l3ext_rs_dyn_path_att {
     tdn              = var.floating_svi.domain_dn
     floating_address = var.floating_svi.floating_ip
-    #encap            = var.floating_svi.vlan != null ? "vlan-${var.floating_svi.vlan}" : null
+    encap            = var.floating_svi.vlan != null ? "vlan-${var.floating_svi.vlan}" : null
     forged_transmit  = var.floating_svi.forged_transmit == true ? "Enabled" : "Disabled"
     mac_change       = var.floating_svi.mac_change == true ? "Enabled" : "Disabled"
     promiscuous_mode = var.floating_svi.promiscuous_mode == true ? "Enabled" : "Disabled"
@@ -465,7 +465,7 @@ resource "aci_l3out_floating_svi" "floating_svi_ipv6" {
   relation_l3ext_rs_dyn_path_att {
     tdn              = var.floating_svi.domain_dn
     floating_address = var.floating_svi.floating_ipv6
-    #encap            = var.floating_svi.vlan != null ? "vlan-${var.floating_svi.vlan}" : null
+    encap            = var.floating_svi.vlan != null ? "vlan-${var.floating_svi.vlan}" : null
     forged_transmit  = var.floating_svi.forged_transmit == true ? "Enabled" : "Disabled"
     mac_change       = var.floating_svi.mac_change == true ? "Enabled" : "Disabled"
     promiscuous_mode = var.floating_svi.promiscuous_mode == true ? "Enabled" : "Disabled"
