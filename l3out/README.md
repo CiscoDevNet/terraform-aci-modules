@@ -13,11 +13,9 @@ There are a few ways of using this module:
 
 The main difference between the two structures is that the various interface types can be defined discretely without the complete logical node and logical interface configuration in the simplified structure.
 
-## Building the module
+## Common attributes between the simplified and the complete structure
 
-### Common attributes between the simplified and the complete structure
-
-Prior to defining the logical node profiles and logical interface profiles in the module, both the stuctures share a few attributes as shown below:
+Prior to defining the logical node profiles and logical interface profiles in the module, both the structures share a few attributes as shown below:
 
 ```hcl
 module "l3out_bgp" {
@@ -48,154 +46,23 @@ module "l3out_ospf" {
     ospf_interface_policy = aci_ospf_interface_policy.ospf_interface_policy.id
     authentication_key_id = "1"
   }
-```
-
-## Features of the simplified structure
-
-* The port, sub-interface and svi for a particular node can be defined minimally as shown below.
-  - To create a Port interface we define `port` with a value and to create a Sub-interface we use `channel`.
-  - To create a SVI interface we set `svi` to `true`.
-  - IPv4 and IPv6 addresses can be defined in tandem for a port which will automatically create two logical interface profiles for the said port for each address family.
-
-```hcl
-nodes = [
-    {
-      node_id          = "101"
-      pod_id           = "1"
-      router_id        = "102.102.102.102"
-      loopback_address = "172.16.31.101"
-interfaces = [
-        {
-          port = "1/13"
-          ip   = "14.1.1.2/24"
-          ipv6 = "2001:db8:b::2/64"
-          vlan = "2"
-        },
-         {
-          channel                = "channel-one"
-          ip                     = "14.14.14.1/24"
-          secondary_ip_addresses = ["14.15.14.1/24", "14.16.14.1/24", "14.17.14.1/24"]
-          vlan                   = "3"
-        },
-        {
-          port = "1/12"
-          ip   = "10.1.1.49/24"
-          ipv6 = "2001:db8:c::2/64"
-          vlan = "4"
-          svi  = true
-        },
-        },
-]
-```
-
-* Floating SVI can be minimally defined as shown below.
-  - Floating SVI IPv4 and IPv6 addresses can be defined in tandem which will automatically create two floating svi logical interface profiles for each address family.
-  - Multiple anchor nodes can be defined with IPv4 and IPv6 addresses in tandem where the anchor nodes having IPv4 address will automatically be created under the IPv4 floating svi logical interface profile and the ones with IPv6 will be created under the IPv6 logical interface profile.
-
-```hcl
-module "bgp_floating_svi" {
-  source      = "terraform-aci-modules/l3out"
-  tenant_dn   = aci_tenant.tenant.id
-  name        = "module_simplified_floating_svi_virtual_bgp"
-  description = "Created by l3out module"
-  vrf_dn      = aci_vrf.vrf4.id
-
-  bgp = true
-
-  floating_svi = {
-    domain_dn        = aci_vmm_domain.virtual_domain.id
-    floating_ip      = "19.1.2.1/24"
-    floating_ipv6    = "2001:db1:a::15/64"
-    vlan             = "4"
-    forged_transmit  = false
-    mac_change       = false
-    promiscuous_mode = true
-    anchor_nodes = [
-      {
-        pod_id     = "1"
-        node_id    = "110"
-        ip_address = "19.1.1.18/24"
-        vlan       = "1"
-      },
-      {
-        pod_id       = "1"
-        node_id      = "114"
-        ip_address   = "19.1.1.21/24"
-        ipv6_address = "2001:db1:a::18/64"
-        vlan         = "1"
-      }
-    ]
-  }
 }
 ```
 
-* A VPC under SVI can be created by defining a vpcs block as shown below.
-  - Similar to the mechanism described above for Floating SVI and Port, IPv4 and IPv6 addresses can be defined together for both Side A and Side B adresses which will automatically create logical interface profiles for each address family by associating themselves to the nodes defined in the vpcs block.
+## Features of the Simplified structure
+* [`Routed Interface, Routed Sub-Interface, SVI`](https://github.com/shrsr/terraform-aci-modules/tree/l3out/examples/l3out/port_channel_svi)
 
-### VPC - OSPF (Simplified)
+* [`Floating SVI`](https://github.com/shrsr/terraform-aci-modules/tree/l3out/examples/l3out/floating_svi)
 
-```hcl
-module "ospf_vpc" {
-  source      = "terraform-aci-modules/l3out"
-  tenant_dn   = aci_tenant.tenant.id
-  name        = "module_simplified_l3out_vpc_ospf"
-  description = "Created by l3out module"
-  vrf_dn      = aci_vrf.vrf6.id
+* [`VPC`](https://github.com/shrsr/terraform-aci-modules/tree/l3out/examples/l3out/vpc)
 
-  ospf = {
-    area_cost = "1"
-    area_ctrl = ["redistribute"]
-    area_id   = "2"
-    area_type = "regular"
-  }
-
-  ospf_interface_profile = {
-    ospf_interface_policy = aci_ospf_interface_policy.ospf_interface_policy.id
-    authentication_key_id = "1"
-  }
-
-vpcs = [
-    {
-      pod_id = 1
-      nodes = [
-        {
-          node_id            = "121"
-          router_id          = "1.1.1.101"
-          router_id_loopback = "no"
-          loopback_address   = "172.16.32.101"
-        }
-      ]
-      interfaces = [
-        {
-          channel = "channel_vpc1"
-          vlan    = "1"
-          side_a = {
-            ip                       = "19.1.2.18/24"
-            ipv6                     = "2000:db2:a::15/64"
-            secondary_ip_addresses   = ["19.1.2.17/24"]
-            secondary_ipv6_addresses = ["2000:db2:a::17/64"]
-          }
-          side_b = {
-            ip                       = "19.1.2.19/24"
-            ipv6                     = "2000:db2:a::16/64"
-            secondary_ip_addresses   = ["19.1.2.21/24"]
-            secondary_ipv6_addresses = ["2000:db2:a::18/64"]
-          }
-        }
-      ]
-    }
-  ] 
-}
-```
-
-* BGP Peers for the simplified structure can be defined in three levels. It has a special attribute called `loopback_as_source` whose deafult value is `true`.
+* BGP Peers for the simplified structure can be defined in three levels. It has a special attribute called `loopback_as_source` whose default value is `true`.
   - When a BGP peer is defined at the global level, it gets pushed to all the nodes in the module when `loopback_as_source` is `true`. If `loopback_as_source` is `false` it gets pushed to all the interfaces.
   - When a BGP peer is defined at the node level, it gets pushed to the respective node if `loopback_as_source` is `true` otherwise it gets pushed to all the interfaces associated with the said node.
-  - BGP peers defined at the interface level get pushed to their respecitve interfaces.
+  - BGP peers defined at the interface level get pushed to their respective interfaces.
   - IPv4 and IPv6 BGP peers associate themselves with their respective address families contained in the node and interface levels.
 
-
-### SVI - BGP (Simplified)
+### BGP Peers defined with loopback_as_source
 
 ```hcl
 module "l3out_svi_bgp" {
