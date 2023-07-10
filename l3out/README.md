@@ -154,6 +154,11 @@ module "l3out_svi_bgp" {
 }
 ```
 
+## Features of the complete structure
+
+The complete structure gives the user all the options available in the Terraform ACI provider. This can be used when the user requires additional attributes to be configured which are not supported in the simplified structure.
+See Example(https://github.com/shrsr/terraform-aci-modules/tree/l3out/examples/l3out/comprehensive/complete_syntax)
+
 ## Requirements
 
 No requirements.
