@@ -34,20 +34,19 @@ module "l3out" {
           port = "1/13"
           ip   = "14.1.1.2/24"
           ipv6 = "2001:db8:b::2/64"
-          vlan = "2"
         },
         {
-          channel                = "channel-one"
+          port                   = "1/14"
           ip                     = "14.14.14.1/24"
           secondary_ip_addresses = ["14.15.14.1/24", "14.16.14.1/24", "14.17.14.1/24"]
           vlan                   = "3"
         },
         {
-          port = "1/12"
-          ip   = "10.1.1.49/24"
-          ipv6 = "2001:db8:c::2/64"
-          vlan = "4"
-          svi  = true
+          channel                = "channel-one"
+          ip                     = "10.1.1.49/24"
+          ipv6                   = "2001:db8:c::2/64"
+          vlan                   = "4"
+          svi                    = true
         },
       ]
     }
