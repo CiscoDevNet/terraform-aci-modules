@@ -50,7 +50,7 @@ module "l3out_ospf" {
 ```
 
 ## Features of the Simplified structure
-* [`Routed Interface, Routed Sub-Interface, SVI`](https://github.com/shrsr/terraform-aci-modules/tree/l3out/examples/l3out/port_channel_svi)
+* [`Routed Sub-Interface, Routed Interface, SVI`](https://github.com/shrsr/terraform-aci-modules/tree/l3out/examples/l3out/port_channel_svi)
 
 * [`Floating SVI`](https://github.com/shrsr/terraform-aci-modules/tree/l3out/examples/l3out/floating_svi)
 

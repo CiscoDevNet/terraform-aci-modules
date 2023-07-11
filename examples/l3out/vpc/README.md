@@ -1,7 +1,7 @@
 <!-- BEGIN_TF_DOCS -->
 ## VPC
 * A VPC under SVI can be created by defining a vpcs block as shown below.
-  - IPv4 and IPv6 addresses can be defined together for both Side A and Side B adresses which will automatically create logical interface profiles for each address family by associating themselves to the nodes defined in the vpcs block.
+  - IPv4 and IPv6 addresses can be defined together for both Side A and Side B addresses which will automatically create logical interface profiles for each address family by associating themselves to the nodes defined in the vpcs block.
 
 ```hcl
 vpcs = [
