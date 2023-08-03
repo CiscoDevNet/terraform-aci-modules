@@ -57,7 +57,7 @@ module "l3out_vpc_simplified" {
         {
           channel = "channel_vpc1"
           vlan    = "1"
-          mtu     = "1500"
+          mtu     = "9000"
           side_a = {
             ip                       = "19.1.2.18/24"
             ipv6                     = "2000:db2:a::15/64"
