@@ -551,6 +551,7 @@ variable "vpcs" {
         {
           channel = optional(string)
           vlan    = optional(string)
+          mtu     = optional(string)
           side_a = object(
             {
               ip                       = optional(string)

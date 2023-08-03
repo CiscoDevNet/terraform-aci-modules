@@ -625,6 +625,7 @@ resource "aci_l3out_path_attachment" "vpc_l3out_path_ip" {
   if_inst_t                    = "ext-svi"
   addr                         = "0.0.0.0"
   encap                        = each.value.interface.vlan != null ? "vlan-${each.value.interface.vlan}" : null
+  mtu                          = each.value.interface.mtu
 }
 
 resource "aci_l3out_path_attachment" "vpc_l3out_path_ipv6" {
@@ -635,6 +636,7 @@ resource "aci_l3out_path_attachment" "vpc_l3out_path_ipv6" {
   if_inst_t                    = "ext-svi"
   addr                         = "0.0.0.0"
   encap                        = each.value.interface.vlan != null ? "vlan-${each.value.interface.vlan}" : null
+  mtu                          = each.value.interface.mtu
 }
 
 resource "aci_l3out_vpc_member" "vpc_side_A_ip" {
